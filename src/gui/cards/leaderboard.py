@@ -119,9 +119,9 @@ class LeaderboardSkin(Skin):
 
     first_top_gap: NumberField = 20
 
-    top_position_font: FontField = ('Bold', 30)
+    top_position_font: FontField = ('Bold', 40)
     top_position_colour: ColourField = '#FFFFFF'
-    top_name_font: FontField = ('Bold', 30)
+    top_name_font: FontField = ('Bold', 40)
     top_name_colour: ColourField = '#DDB21D'
     study_top_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:study|top_hours_text',
@@ -145,8 +145,8 @@ class LeaderboardSkin(Skin):
         CardMode.TEXT: skin.text_top_hours_text,
         CardMode.ANKI: skin.anki_top_hours_text,
     }[skin.mode]
-    top_hours_font: FontField = ('Bold', 30)
-    top_hours_colour: ColourField = '#DDB21D'
+    top_hours_font: FontField = ('Bold', 40)
+    top_hours_colour: ColourField = '#FFFFFF'
     top_text_sep: NumberField = 5
 
     # Other page constants
@@ -246,6 +246,9 @@ class LeaderboardPage(Layout):
              ypos)
         )
         ypos += header.height + self.skin.header_gap
+
+        # Move Top 3 avatars UP by reducing ypos
+        ypos -= 40
 
         # Draw the top 3
         first_entry = self.entries[0]
