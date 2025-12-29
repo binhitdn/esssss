@@ -1,113 +1,269 @@
+# StudyLion Leaderboard Bot
 
-## LionBot (formerly StudyLion) - Discord Study & Productivity Bot
+Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt, lấy dữ liệu từ API thật.
 
-LionBot is a Discord bot that tracks members' study and work time while offering members the ability to view their statistics and use productivity tools such as: To-do lists, pomodoro timers, reminders, and much more.
+## 🎯 Tính năng
 
-  
+- **3 loại bảng xếp hạng**: Ngày, Tuần, Tháng
+- **GUI đẹp mắt**: Sử dụng GUI system của LionBot gốc
+- **Dữ liệu thật**: Lấy từ API với avatar và thời gian thực
+- **Múi giờ Việt Nam**: Hiển thị thời gian theo UTC+7
+- **Loại bỏ emoji**: Tự động làm sạch tên người dùng
+- **Chỉ 1 server**: Bảo mật cho server riêng
+- **Tự động gửi bảng xếp hạng**:
+  - 📅 **Ngày**: Mỗi ngày lúc 2h58 sáng
+  - 📅 **Tuần**: Mỗi ngày lúc 20h và 2h55 sáng
+  - 📅 **Tháng**: Ngày 1 và 15 mỗi tháng lúc 2h50 sáng
 
-[**Invite LionBot here**](https://discord.com/oauth2/authorize?client_id=889078613817831495&permissions=8&scope=bot), and get started with `/help`.
+## 📋 Lệnh Discord
 
-Join the [**support server**](https://discord.gg/the-study-lions-780195610154237993) to contact us if you need help configuring the bot on your server, or start a [**discussion**](https://github.com/LionBots/LionBot/discussions "disscussion") to report issues and bugs.
+### Slash Commands (Thủ công)
+- `/bangxephang` - Bảng xếp hạng hôm nay
+- `/bangxephang-tuan` - Bảng xếp hạng tuần này  
+- `/bangxephang-thang` - Bảng xếp hạng tháng này
 
+### Tự động gửi
+Bot sẽ tự động gửi bảng xếp hạng theo lịch:
 
+| Loại | Thời gian | Channel ID |
+|------|-----------|------------|
+| 📅 Ngày | 2h58 sáng mỗi ngày | 1450690801934930124 |
+| 📅 Tuần | 20h và 2h55 mỗi ngày | 1435035898629591040 |
+| 📅 Tháng | Ngày 1 & 15 lúc 2h50 | 1450690861036994763 |
 
-### The Idea
+*Tất cả theo múi giờ Việt Nam (UTC+7)*
 
+## 🚀 Cách chạy
 
-In the past couple of years, we noticed a new trend on Discord – instead of being a platform designed only for gamers, many students joined it as well, forming communities dedicated to studying and working together.
+### Phương pháp 1: Script Python (Khuyến nghị)
+```bash
+python3 start.py
+```
 
+### Phương pháp 2: Script Bash
+```bash
+chmod +x start.sh
+./start.sh
+```
 
+### Phương pháp 3: Chạy thủ công
+```bash
+python3 run_leaderboard_bot.py
+```
 
-This bot was founder by [Ari Horesh](https://www.youtube.com/arihoresh) (@AriHoresh) to support these forming study communities and allow students all over the world to study better.
+## ⚙️ Cấu hình
 
-### Self Hosting
+### 1. Tạo Virtual Environment
+```bash
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+pip install -r requirements.txt
+```
 
-You can self-host and fork the bot using the following steps, but beware that we do not provide support for self-hosted instances. If you are interested in a privately managed instance (affordable paid service), contact Ari at contact@arihoresh.com
+### 2. Cấu hình Bot Token
+Tạo file `config/secrets.conf`:
+```ini
+[STUDYLION]
+token = YOUR_BOT_TOKEN_HERE
+```
 
-Follow the steps below to self-host the bot.
-- Clone the repo recursively (which makes sure to include the cmdClient submodule, otherwise you need to initialise it separately) 
--  Install the requirements from `requirements.txt` 
-- Install Postgresql, and setup a database with the schema given in `data/schema.sql` 
--  Copy `config/example-bot.conf` to `config/bot.conf`, filling in the appropriate information, including database connection arguments. 
-- Start the bot from the top level `run.py`.
+### 3. Cấu hình Server ID
+Trong `leaderboard_only_bot.py`, sửa:
+```python
+ALLOWED_SERVER_ID = 1434581250798125068  # Thay bằng server ID của bạn
+```
 
-We do not offer support for self-hosted bots, the code is provided as is without warranty of any kind. 
+### 4. Cấu hình Channel IDs (Tự động gửi)
+Trong `leaderboard_only_bot.py`, sửa:
+```python
+CHANNEL_DAILY = 1450690801934930124      # Channel cho bảng xếp hạng ngày
+CHANNEL_WEEKLY = 1435035898629591040     # Channel cho bảng xếp hạng tuần
+CHANNEL_MONTHLY = 1450690861036994763    # Channel cho bảng xếp hạng tháng
+```
 
-## Features
+### 5. Cấu hình API
+Trong `leaderboard_only_bot.py`, sửa:
+```python
+API_BASE_URL = "http://192.168.128.173:3001/api/leaderboard/top-learners"
+```
 
-- **Students Cards and Statistics**
+## 📁 Cấu trúc Project
 
-Allow users to create their own private student profile cards and set customs study field tags by using `!stats` and `!setprofile`
+```
+StudyLion/
+├── start.py                    # Script khởi động Python
+├── start.sh                    # Script khởi động Bash  
+├── run_leaderboard_bot.py      # Script chạy thủ công
+├── leaderboard_only_bot.py     # Bot chính
+├── config/
+│   ├── secrets.conf           # Token bot
+│   ├── bot.conf              # Cấu hình bot
+│   ├── gui.conf              # Cấu hình GUI
+│   └── locale.conf           # Cấu hình ngôn ngữ
+├── scripts/
+│   └── start_gui.py          # GUI server
+├── src/gui/                   # GUI system
+├── skins/                     # Giao diện bảng xếp hạng
+├── locales/vi/               # Ngôn ngữ tiếng Việt
+└── venv/                     # Virtual environment
+```
 
-![Discord Study Bot Profile Card](https://i.imgur.com/dEZvawb.png)
+## 🔧 API Format
 
-- **Camera only study rooms**
+Bot expect API trả về format:
+```json
+{
+  "type": "day|week|month",
+  "leaderboard": [
+    {
+      "rank": 1,
+      "userId": "1031850874999423016",
+      "userName": "irina",
+      "avatar": "1761749d4ee7beee5a19a1669a67cf77",
+      "studyTime": 24480755,
+      "timeFormatted": {
+        "hours": 6,
+        "minutes": 48,
+        "total": 24480755
+      }
+    }
+  ]
+}
+```
 
-Set specific channels to force users to use their webcam to study.
+**Lưu ý**: `studyTime` phải là **milliseconds**, bot sẽ tự chuyển sang giây.
 
-![discord study rooms](https://i.imgur.com/rlsH8a6.png)
+## 🛠️ Troubleshooting
 
-- **To-Do List**
+### Bot không khởi động
+1. Kiểm tra token trong `config/secrets.conf`
+2. Kiểm tra virtual environment: `source venv/bin/activate`
+3. Cài đặt dependencies: `pip install -r requirements.txt`
 
-Users can create and share their own to-do lists, and get rewards when completing a task! Use `!todo` to launch our interactive to do list!
+### GUI không render
+1. Kiểm tra GUI server có chạy: `ls -la gui.sock`
+2. Restart toàn bộ: `python3 start.py`
 
-- **Reminders**
+### API không kết nối
+1. Kiểm tra API URL trong code
+2. Test API: `curl "http://192.168.128.173:3001/api/leaderboard/top-learners?type=day"`
 
-Users can set their own private reminders, to drink water, stretch, or anything else they want to remember, every X minutes, hours, days, or maybe even just once. 
+### Slash commands không sync
+1. Kick và invite lại bot vào server
+2. Đợi 1-2 phút để Discord sync
+3. Restart Discord client
 
-Example: `!remindme to drink water every 3h` will send you a reminder every 3 hours to drink water. 
+### Tự động gửi không hoạt động
+1. Kiểm tra bot có quyền gửi tin nhắn trong channel
+2. Kiểm tra Channel IDs có đúng không
+3. Xem log khi đến giờ gửi: `⏰ [AUTO] Đang gửi bảng xếp hạng...`
+4. Kiểm tra múi giờ server: `date` (phải là UTC+7 hoặc bot tự xử lý)
 
-![discord bot to do lists and reminders](https://i.imgur.com/BMFK2gJ.png)
+## 📊 Thống kê
 
-- **Scheduled Sessions**
+- **Dung lượng**: ~50MB (bao gồm GUI assets)
+- **RAM sử dụng**: ~100MB
+- **Thời gian khởi động**: ~5 giây
+- **Hỗ trợ**: Python 3.9+
+- **Tính năng tự động**: 3 scheduled tasks chạy 24/7
 
-This feature allows the users to use their coins to schedule a time to study at. Book rooms using `!rooms book`
+## 📚 Tài liệu thêm
 
-Not attending prevents everyone in the room from getting the bonus.
+- [AUTO_SCHEDULE.md](AUTO_SCHEDULE.md) - Chi tiết về lịch tự động gửi bảng xếp hạng
 
-![scheuduled study rooms discord](https://i.imgur.com/6dMSqDh.png)
+## 🎨 Tùy chỉnh
 
-- **Study and Work Statistics**
+### Thay đổi lịch tự động gửi
+Sửa trong `leaderboard_only_bot.py`:
 
-In addition to the profile cards, users can view their daily, weekly, monthly and all-time stats, as well as their study streak. Use `!weekly` and `!monthly` to view your revision statistics in more detail.
+**Bảng xếp hạng ngày:**
+```python
+@tasks.loop(time=time(hour=2, minute=58, tzinfo=VN_TZ))
+async def auto_post_daily(self):
+    # Thay đổi hour và minute theo ý muốn
+```
 
-![weekly and monthly statistics discord study](https://i.imgur.com/i7JutEh.png)
+**Bảng xếp hạng tuần:**
+```python
+# Trong hàm auto_post_weekly, sửa điều kiện:
+if (current_hour == 20 and current_minute == 0) or (current_hour == 2 and current_minute == 55):
+    # Thay đổi giờ theo ý muốn
+```
 
-- **Pomodoro Timers**
+**Bảng xếp hạng tháng:**
+```python
+# Trong hàm auto_post_monthly, sửa điều kiện:
+if (now.day == 1 or now.day == 15) and now.hour == 2 and now.minute == 50:
+    # Thay đổi ngày và giờ theo ý muốn
+```
 
-The bot will show the timer in the title of the study room and play a sound at the start and end of each session. 
-Commands:  `!timer` , `!pomodoro`
+### Thay đổi màu sắc
+Sửa file `src/gui/cards/leaderboard.py`:
+```python
+top_name_colour: ColourField = '#DDB21D'  # Màu vàng
+```
 
-![Pomodoro timer Discord](https://i.imgur.com/UcNXpv3.png)
+### Thay đổi server name
+Sửa trong `leaderboard_only_bot.py`:
+```python
+'server_name': '14 hours a day(STUDY VIP)'
+```
 
-- **Private Study Rooms**
+### Thay đổi định dạng thời gian
+Sửa trong `src/gui/cards/leaderboard.py`:
+```python
+study_top_hours_text: LazyStringField = "{HH:02d}:{MM:02d}:{SS:02d}"
+```
 
-Allows the members to create their own private study rooms and invite their friends to join! 
-Rent a room using `!rent [usernames]`. 
+## 🧪 Test tính năng tự động
 
-- **Workout Rooms**
+### Cách 1: Đợi đến giờ thật
+Bot sẽ tự động gửi khi đến giờ đã cấu hình. Xem log:
+```
+⏰ [AUTO] Đang gửi bảng xếp hạng ngày...
+✅ [AUTO] Đã gửi bảng xếp hạng ngày
+```
 
-Allows the Admins to create workout rooms with a bonus for people who workout.
+### Cách 2: Test ngay lập tức (Sửa code tạm thời)
+Thay đổi thời gian trong code để test:
 
-- **Study Tiers and Achievements**
+```python
+# Ví dụ: Test bảng xếp hạng ngày sau 1 phút
+@tasks.loop(time=time(hour=14, minute=30, tzinfo=VN_TZ))  # Thay bằng giờ hiện tại + 1 phút
+async def auto_post_daily(self):
+    ...
+```
 
-Reward users based on their total study time, allow them to get better ranks, and show off how long they've been working.
+Sau khi test xong, nhớ đổi lại thời gian gốc!
 
+### Cách 3: Gọi hàm trực tiếp (Thêm test command)
+Thêm vào `leaderboard_only_bot.py`:
 
-- **Full-Scale Economy System**
+```python
+@bot.tree.command(name="test-auto", description="[ADMIN] Test tự động gửi bảng xếp hạng")
+async def test_auto_command(interaction: discord.Interaction):
+    """Test command cho admin"""
+    if interaction.user.id != YOUR_ADMIN_ID:  # Thay bằng Discord ID của bạn
+        await interaction.response.send_message("❌ Chỉ admin mới dùng được!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message("🧪 Đang test tự động gửi...", ephemeral=True)
+    
+    # Test gửi vào channel ngày
+    channel = bot.get_channel(CHANNEL_DAILY)
+    if channel:
+        await bot.send_leaderboard_to_channel(channel, "day", "hôm nay")
+        await interaction.followup.send("✅ Đã test gửi bảng xếp hạng ngày!", ephemeral=True)
+```
 
-Reward users for studying, allow them to use the coins to buy private study rooms, schedule accountability rooms, and even change their name's color.
+## 📝 License
 
-- **Full-Scale Moderation System**
+Private project - Chỉ sử dụng nội bộ.
 
-Punish cheaters, audit-log, welcome message, and so much more using our full-scale moderation system.
+## 🤝 Support
 
-### Tutorials
-
-A command list and general documentation for LionBot may be found using the `!help` command, and documentation for a specific command, e.g. `config`, may be found with `!help config`.
-
-Make sure to check the [full documentation](https://www.notion.so/izabellakis/LionBot-Bot-Tutorials-f493268fcd12436c9674afef2e151707 "LionBot Tutorial") to stay updated.
-
-<a href="https://imgur.com/ziPdJGw"><img src="https://i.imgur.com/ziPdJGws.png" title="source: imgur.com" /></a>
-# esssss
-# esssss
+Nếu có vấn đề, hãy kiểm tra:
+1. Log của bot khi chạy
+2. API có hoạt động không
+3. Token bot có đúng không
+4. Server ID có đúng không

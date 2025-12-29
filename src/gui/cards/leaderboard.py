@@ -125,7 +125,7 @@ class LeaderboardSkin(Skin):
     top_name_colour: ColourField = '#DDB21D'
     study_top_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:study|top_hours_text',
-        "{HH:02d}h{MM:02d}p{SS:02d}s"
+        "{HH:02d}:{MM:02d}:{SS:02d}"
     )
     text_top_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:text|top_hours_text',
@@ -133,7 +133,7 @@ class LeaderboardSkin(Skin):
     )
     voice_top_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:voice|top_hours_text',
-        "{HH:02d}h{MM:02d}p{SS:02d}s"
+        "{HH:02d}:{MM:02d}:{SS:02d}"
     )
     anki_top_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:anki|top_hours_text',
@@ -164,7 +164,7 @@ class LeaderboardSkin(Skin):
     entry_name_colour: ColourField = '#FFFFFF'
     study_entry_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:study|entry_hours_text',
-        "{HH:02d}h{MM:02d}p{SS:02d}s"
+        "{HH:02d}:{MM:02d}:{SS:02d}"
     )
     text_entry_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:text|entry_hours_text',
@@ -172,7 +172,7 @@ class LeaderboardSkin(Skin):
     )
     voice_entry_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:voice|entry_hours_text',
-        "{HH:02d}h{MM:02d}p{SS:02d}s"
+        "{HH:02d}:{MM:02d}:{SS:02d}"
     )
     anki_entry_hours_text: LazyStringField = _p(
         'skin:leaderboard|mode:anki|entry_hours_text',

@@ -27,33 +27,33 @@ msgstr ""
 #: src/gui/cards/leaderboard.py:69
 msgctxt "skin:leaderboard|mode:study|header_text"
 msgid "STUDY TIME LEADERBOARD"
-msgstr "CLASSIFICAÇÃO TEMPO DE ESTUDOS"
+msgstr "BẢNG XẾP HẠNG HỌC TẬP"
 
 #: src/gui/cards/leaderboard.py:73
 msgctxt "skin:leaderboard|mode:text|header_text"
 msgid "MESSAGE LEADERBOARD"
-msgstr "CLASSIFICAÇÃO DE CONVERSAÇÃO"
+msgstr "BẢNG XẾP HẠNG TIN NHẮN"
 
 #: src/gui/cards/leaderboard.py:77
 msgctxt "skin:leaderboard|mode:voice|header_text"
 msgid "VOICE LEADERBOARD"
-msgstr "CLASSIFICAÇÃO CANAIS DE VOZ"
+msgstr "BẢNG XẾP HẠNG VOICE"
 
 #: src/gui/cards/leaderboard.py:81
 msgctxt "skin:leaderboard|mode:anki|header_text"
 msgid "ANKI REVIEW LEADERBOARD"
-msgstr "CLASSIFICAÇÃO ATIVIDADES ANKI"
+msgstr "BẢNG XẾP HẠNG ANKI"
 
 #: src/gui/cards/leaderboard.py:99
 msgctxt "skin:leaderboard|field:subheader_text"
 msgid "SERVER: "
-msgstr "Server:"
+msgstr "SERVER: "
 
 #: src/gui/cards/leaderboard.py:129
 #, possible-python-brace-format
 msgctxt "skin:leaderboard|mode:study|top_hours_text"
 msgid "{amount} hours"
-msgstr "{amount} giờs"
+msgstr "{amount} giờ"
 
 #: src/gui/cards/leaderboard.py:133
 #, possible-python-brace-format
@@ -65,13 +65,13 @@ msgstr "{amount} XP"
 #, possible-python-brace-format
 msgctxt "skin:leaderboard|mode:voice|top_hours_text"
 msgid "{amount} hours"
-msgstr "{amount} giờs"
+msgstr "{amount} giờ"
 
 #: src/gui/cards/leaderboard.py:141
 #, possible-python-brace-format
 msgctxt "skin:leaderboard|mode:anki|top_hours_text"
 msgid "{amount} cards"
-msgstr "{amount} cartões"
+msgstr "{amount} thẻ"
 
 #: src/gui/cards/leaderboard.py:168
 #, possible-python-brace-format
@@ -95,4 +95,4 @@ msgstr "{HH:02d}:{MM:02d}"
 #, possible-python-brace-format
 msgctxt "skin:leaderboard|mode:anki|entry_hours_text"
 msgid "{amount} cards"
-msgstr "{amount} cartões"
+msgstr "{amount} thẻ"

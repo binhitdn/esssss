@@ -31,7 +31,7 @@ def start_gui_server():
     print("🎨 Khởi động GUI server...")
     try:
         gui_process = subprocess.Popen([
-            sys.executable, "scripts/start_gui.py"
+            "venv/bin/python", "scripts/start_gui.py"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
         # Đợi một chút
@@ -53,7 +53,7 @@ def start_bot():
     print("🏆 Khởi động bot bảng xếp hạng...")
     try:
         bot_process = subprocess.Popen([
-            sys.executable, "leaderboard_only_bot.py"
+            "venv/bin/python", "leaderboard_only_bot.py"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
         print("✅ Bot đã khởi động")
@@ -90,7 +90,9 @@ def main():
     print("🎯 Server: 1434581250798125068")
     print("📊 GUI:", "✅ Có" if gui_process else "❌ Không")
     print("\n📋 Lệnh Discord:")
-    print("   /bangxephang - Bảng xếp hạng")
+    print("   /bangxephang - Bảng xếp hạng hôm nay")
+    print("   /bangxephang-tuan - Bảng xếp hạng tuần này")
+    print("   /bangxephang-thang - Bảng xếp hạng tháng này")
     print("\n⌨️ Nhấn Ctrl+C để dừng")
     print("=" * 30)
     
