@@ -158,6 +158,13 @@ async def main():
         # for i in range(MAX_PROC):
         #     executor.submit(worker_configurer)
 
+    import os
+    if os.path.exists(PATH):
+        try:
+            os.remove(PATH)
+        except OSError:
+            pass
+
     with logging_context(stack=["SERV"]):
         server = await asyncio.start_unix_server(handle_request, PATH)
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)

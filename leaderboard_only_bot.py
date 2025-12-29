@@ -225,24 +225,22 @@ class LeaderboardBot(commands.Bot):
             image_data = await render_leaderboard_image(leaderboard_data)
             
             if image_data:
-                # Gửi ảnh
+                # Tạo nội dung text
+                leaderboard_text = generate_leaderboard_text(leaderboard_data, period_type, period_name)
+                
+                # Gửi ảnh và text
                 file = discord.File(
                     fp=BytesIO(image_data),
                     filename="leaderboard.png"
                 )
                 
-                period_info = get_period_info(period_type)
                 await channel.send(
-                    content=f"🏆 **Bảng Xếp Hạng Học Tập** - Top 10 người học chăm chỉ nhất {period_info}!",
+                    content=leaderboard_text,
                     file=file
                 )
             else:
                 # Fallback: gửi text
-                leaderboard_text = f"🏆 **Bảng Xếp Hạng Học Tập {period_name.title()}**\n\n"
-                for i, member in enumerate(leaderboard_data[:10], 1):
-                    time_str = format_time(member["dayTrackTime"])
-                    medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
-                    leaderboard_text += f"{medal} **{member['displayName']}** - {time_str}\n"
+                leaderboard_text = generate_leaderboard_text(leaderboard_data, period_type, period_name)
                 
                 await channel.send(leaderboard_text)
                 
@@ -257,6 +255,72 @@ def format_time(seconds):
     minutes = (seconds % 3600) // 60
     secs = seconds % 60
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+def format_duration_vietnamese(seconds):
+    """Chuyển đổi giây thành định dạng X giờ Y phút"""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    return f"{hours} giờ {minutes} phút"
+
+def generate_leaderboard_text(data, period_type, period_name):
+    """Tạo nội dung text cho bảng xếp hạng theo yêu cầu"""
+    # Date calculation for title
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+    now = datetime.now(vn_tz)
+    
+    if period_type == "day":
+        # Logic: Trước 3h sáng thì tính là ngày hôm qua, sau 3h sáng tính là ngày hôm nay
+        if now.hour < 3:
+            display_date = now - timedelta(days=1)
+        else:
+            display_date = now
+            
+        date_str_title = display_date.strftime("%d/%m/%Y")
+        title = f"TOP 10 HỌC VIÊN XUẤT SẮC NGÀY {date_str_title}"
+    elif period_type == "week":
+        title = "TOP 10 HỌC VIÊN XUẤT SẮC TUẦN NÀY"
+    elif period_type == "month":
+        title = "TOP 10 HỌC VIÊN XUẤT SẮC THÁNG NÀY"
+    else:
+        title = f"TOP 10 HỌC VIÊN XUẤT SẮC {period_name.upper()}"
+
+    text = f"**{title}**\n\n"
+
+    # Top 10 list
+    # Format: 1. 3h 45p: <@userId>
+    # Xuống dòng cho mỗi user để dễ nhìn
+    for i, member in enumerate(data[:10], 1):
+        time_str = format_duration_vietnamese(member["dayTrackTime"])
+        
+        # Sử dụng mention tag <@userId>
+        user_id = member.get('userId')
+        if user_id:
+            mention = f"<@{user_id}>"
+        else:
+            mention = f"@{member['displayName']}"
+        
+        # Entry format: "1. 304 giờ 45 phút: @irina"
+        text += f"{i}. {time_str}: {mention}\n"
+
+    # Date info
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+    now = datetime.now(vn_tz)
+    
+    if period_type == "month":
+        date_str = f"Tháng {now.month} {now.year}"
+    elif period_type == "day":
+        date_str = f"Ngày {now.day}/{now.month}/{now.year}"
+    elif period_type == "week":
+        date_str = f"Tuần {now.isocalendar()[1]} - {now.year}"
+    else:
+        date_str = now.strftime("%d/%m/%Y")
+        
+    text += f"\n**{date_str}**\n\n"
+    
+    # Motivational Footer
+    text += "Tiếp tục phát huy! Tháng sau sẽ có những kỷ lục mới! 🚀"
+    
+    return text
 
 def get_period_info(period_type):
     """Lấy thông tin khoảng thời gian theo múi giờ Việt Nam"""
@@ -519,6 +583,9 @@ async def leaderboard_command(interaction: discord.Interaction, period_type: str
         if image_data:
             print(f"📊 Đã nhận image data: {len(image_data)} bytes")
             
+            # Tạo nội dung text
+            leaderboard_text = generate_leaderboard_text(leaderboard_data, period_type, period_name)
+            
             # Gửi ảnh dạng tin nhắn thường (không embed)
             file = discord.File(
                 fp=BytesIO(image_data),
@@ -527,19 +594,15 @@ async def leaderboard_command(interaction: discord.Interaction, period_type: str
             
             # Gửi tin nhắn mới thay vì followup
             await interaction.channel.send(
-                content=f"🏆 **Bảng Xếp Hạng Học Tập** - Top 10 người học chăm chỉ nhất {period_name}!",
+                content=leaderboard_text,
                 file=file
             )
-            print("✅ Đã gửi bảng xếp hạng với ảnh")
+            print("✅ Đã gửi bảng xếp hạng với ảnh và text")
             
         else:
             print("⚠️ Không có image data, gửi fallback text")
-            # Fallback: gửi text nếu không render được ảnh
-            leaderboard_text = f"🏆 **Bảng Xếp Hạng Học Tập {period_name.title()}**\n\n"
-            for i, member in enumerate(leaderboard_data[:10], 1):
-                time_str = format_time(member["dayTrackTime"])
-                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
-                leaderboard_text += f"{medal} **{member['displayName']}** - {time_str}\n"
+            # Fallback: gửi text
+            leaderboard_text = generate_leaderboard_text(leaderboard_data, period_type, period_name)
             
             await interaction.channel.send(leaderboard_text)
             print("✅ Đã gửi bảng xếp hạng dạng text")

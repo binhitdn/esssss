@@ -29,6 +29,15 @@ def check_token():
 def start_gui_server():
     """Khởi động GUI server"""
     print("🎨 Khởi động GUI server...")
+    
+    # Dọn dẹp socket cũ nếu có
+    if os.path.exists('gui.sock'):
+        try:
+            os.remove('gui.sock')
+            print("🧹 Đã dọn dẹp gui.sock cũ")
+        except Exception as e:
+            print(f"⚠️ Không thể xóa gui.sock cũ: {e}")
+
     try:
         gui_process = subprocess.Popen([
             "venv/bin/python", "scripts/start_gui.py"
@@ -42,7 +51,7 @@ def start_gui_server():
             return gui_process
         else:
             stdout, stderr = gui_process.communicate()
-            print(f"❌ GUI server lỗi: {stderr.decode()[:200]}")
+            print(f"❌ GUI server lỗi: {stderr.decode()}")
             return None
     except Exception as e:
         print(f"❌ Không thể khởi động GUI: {e}")

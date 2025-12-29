@@ -64,6 +64,13 @@ def start_gui_server():
     """Khởi động GUI server"""
     print("🎨 Khởi động GUI server...")
     
+    # Dọn dẹp socket cũ nếu có (double check)
+    if os.path.exists('gui.sock'):
+        try:
+            os.remove('gui.sock')
+        except:
+            pass
+    
     try:
         process = subprocess.Popen([
             'venv/bin/python', 'scripts/start_gui.py'
@@ -77,7 +84,7 @@ def start_gui_server():
             return process
         else:
             stdout, stderr = process.communicate()
-            print(f"❌ GUI server lỗi: {stderr.decode()[:200]}")
+            print(f"❌ GUI server lỗi: {stderr.decode()}")
             return None
             
     except Exception as e:
