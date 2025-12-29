@@ -1,0 +1,25 @@
+# Vietnamese translation for StudyLion Pomodoro
+msgid ""
+msgstr ""
+"Project-Id-Version: StudyLion 1.0\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgctxt "cmd:timer"
+msgid "timer"
+msgstr "dongho"
+
+msgctxt "cmd:timer|desc"
+msgid "Show your current timer"
+msgstr "Hiển thị đồng hồ hiện tại của bạn"
+
+msgctxt "timer|stage:break|name"
+msgid "BREAK"
+msgstr "NGHỈ"
+
+msgctxt "timer|stage:focus|name"
+msgid "FOCUS"
+msgstr "TẬP TRUNG"

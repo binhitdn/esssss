@@ -1,0 +1,33 @@
+# Vietnamese translation for StudyLion Statistics
+msgid ""
+msgstr ""
+"Project-Id-Version: StudyLion 1.0\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgctxt "cmd:me"
+msgid "me"
+msgstr "toi"
+
+msgctxt "cmd:me|desc"
+msgid "Display your personal profile and summary statistics."
+msgstr "Hiển thị hồ sơ cá nhân và thống kê tóm tắt của bạn."
+
+msgctxt "cmd:stats"
+msgid "stats"
+msgstr "thongke"
+
+msgctxt "cmd:stats|desc"
+msgid "Weekly and monthly statistics for your recent activity."
+msgstr "Thống kê hàng tuần và hàng tháng cho hoạt động gần đây của bạn."
+
+msgctxt "cmd:leaderboard"
+msgid "leaderboard"
+msgstr "bangxephang"
+
+msgctxt "cmd:leaderboard|desc"
+msgid "Show the server leaderboard"
+msgstr "Hiển thị bảng xếp hạng server"

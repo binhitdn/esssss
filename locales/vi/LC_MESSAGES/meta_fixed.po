@@ -1,0 +1,17 @@
+# Vietnamese translation for StudyLion Meta Commands
+msgid ""
+msgstr ""
+"Project-Id-Version: StudyLion 1.0\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgctxt "cmd:help"
+msgid "help"
+msgstr "trogiup"
+
+msgctxt "cmd:help|desc"
+msgid "See a brief summary of my commands and features."
+msgstr "Xem tóm tắt các lệnh và tính năng."
