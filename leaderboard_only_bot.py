@@ -257,10 +257,10 @@ def format_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 def format_duration_vietnamese(seconds):
-    """Chuyển đổi giây thành định dạng X giờ Y phút"""
+    """Chuyển đổi giây thành định dạng XX giờ YY phút"""
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
-    return f"{hours} giờ {minutes} phút"
+    return f"{hours:02d} giờ {minutes:02d} phút"
 
 def generate_leaderboard_text(data, period_type, period_name):
     """Tạo nội dung text cho bảng xếp hạng theo yêu cầu"""
@@ -278,11 +278,37 @@ def generate_leaderboard_text(data, period_type, period_name):
         date_str_title = display_date.strftime("%d/%m/%Y")
         title = f"TOP 10 HỌC VIÊN XUẤT SẮC NGÀY {date_str_title}"
     elif period_type == "week":
-        title = "TOP 10 HỌC VIÊN XUẤT SẮC TUẦN NÀY"
+        # Monday = 0.
+        # Nếu là thứ 2 và trước 3h sáng thì tính là tuần trước
+        if now.weekday() == 0 and now.hour < 3:
+            title = "TOP 10 HỌC VIÊN XUẤT SẮC TUẦN TRƯỚC"
+            # Tuần trước: lùi 7 ngày từ hôm nay (đang là thứ 2)
+            end_of_last_week = now - timedelta(days=now.weekday() + 1) # CN tuần trước
+            start_of_last_week = end_of_last_week - timedelta(days=6)
+            date_str_footer = f"Tuần {start_of_last_week.strftime('%d/%m')} - {end_of_last_week.strftime('%d/%m/%Y')}"
+        else:
+            title = "TOP 10 HỌC VIÊN XUẤT SẮC TUẦN NÀY"
+            # Tuần này
+            start_of_week = now - timedelta(days=now.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            date_str_footer = f"Tuần {start_of_week.strftime('%d/%m')} - {end_of_week.strftime('%d/%m/%Y')}"
+
     elif period_type == "month":
-        title = "TOP 10 HỌC VIÊN XUẤT SẮC THÁNG NÀY"
+        # Nếu là ngày 1 và trước 3h sáng thì tính là tháng trước
+        if now.day == 1 and now.hour < 3:
+            # Tháng trước
+            last_month = now - timedelta(days=1) # Ngày cuối tháng trước
+            title = f"TOP 10 HỌC VIÊN XUẤT SẮC THÁNG {last_month.month}/{last_month.year}"
+            date_str_footer = f"Tháng {last_month.month}/{last_month.year}"
+        else:
+            title = f"TOP 10 HỌC VIÊN XUẤT SẮC THÁNG {now.month}/{now.year}"
+            date_str_footer = f"Tháng {now.month}/{now.year}"
     else:
-        title = f"TOP 10 HỌC VIÊN XUẤT SẮC {period_name.upper()}"
+        title = f"TOP 10 HỌC VIÊN XUẤT SẮC {period_name.upper()}" 
+        date_str_footer = now.strftime("%d/%m/%Y")
+    
+    if period_type == "day":
+         date_str_footer = date_str_title # Reuse the calculated daily date string for footer if day
 
     text = f"**{title}**\n\n"
 
@@ -303,19 +329,7 @@ def generate_leaderboard_text(data, period_type, period_name):
         text += f"{i}. {time_str}: {mention}\n"
 
     # Date info
-    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
-    now = datetime.now(vn_tz)
-    
-    if period_type == "month":
-        date_str = f"Tháng {now.month} {now.year}"
-    elif period_type == "day":
-        date_str = f"Ngày {now.day}/{now.month}/{now.year}"
-    elif period_type == "week":
-        date_str = f"Tuần {now.isocalendar()[1]} - {now.year}"
-    else:
-        date_str = now.strftime("%d/%m/%Y")
-        
-    text += f"\n**{date_str}**\n\n"
+    text += f"\n**{date_str_footer}**\n\n"
     
     # Motivational Footer
     text += "Tiếp tục phát huy! Tháng sau sẽ có những kỷ lục mới! 🚀"
