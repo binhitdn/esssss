@@ -286,6 +286,9 @@ class VoiceTrackerBot(discord.Client):
             }
 
     # --- API Handlers ---
+    async def handle_root(self, request):
+        return web.Response(text="StudyLion Voice Tracker API is running.")
+
     def get_avatar_url(self, user_id, avatar_hash):
         if avatar_hash:
             return f"https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png?size=256"
