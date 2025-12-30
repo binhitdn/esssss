@@ -21,7 +21,7 @@ if sys.stderr.encoding != 'utf-8':
     sys.stderr.reconfigure(encoding='utf-8')
 
 # API endpoint
-API_BASE_URL = "http://192.168.128.173:3001/api/leaderboard/top-learners"
+API_BASE_URL = "https://api.14study.io.vn/api/leaderboard/top-learners"
 
 # Server ID được phép
 ALLOWED_SERVER_ID = 1434581250798125068
