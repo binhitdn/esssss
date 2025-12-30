@@ -576,16 +576,38 @@ async def render_leaderboard_image(data):
         
         # Gửi request qua GUI client
         print("📡 Gửi request tới GUI server...")
-        image_data = await gui_client.request(
-            route='leaderboard_card',
-            args=(),
-            kwargs={
-                'server_name': '14 hours a day(STUDY VIP)',
-                'entries': entries,
-                'highlight': None,
-                'locale': 'vi'
-            }
-        )
+        
+        image_data = None
+        retry_count = 3
+        
+        for attempt in range(retry_count):
+            try:
+                if attempt > 0:
+                    print(f"🔄 Render attempt {attempt + 1}/{retry_count}...")
+                
+                image_data = await gui_client.request(
+                    route='leaderboard_card',
+                    args=(),
+                    kwargs={
+                        'server_name': '14 hours a day(STUDY VIP)',
+                        'entries': entries,
+                        'highlight': None,
+                        'locale': 'vi'
+                    },
+                    timeout=300  # Explicit 5 minutes timeout
+                )
+                
+                if image_data:
+                    break
+                    
+            except asyncio.TimeoutError:
+                print(f"⚠️ Render attempt {attempt + 1} TIMED OUT (>300s)")
+                if attempt < retry_count - 1:
+                    await asyncio.sleep(5)
+            except Exception as e:
+                print(f"⚠️ Render attempt {attempt + 1} failed: {e}")
+                if attempt < retry_count - 1:
+                    await asyncio.sleep(5)
         
         if image_data:
             print(f"✅ Render thành công: {len(image_data)} bytes")

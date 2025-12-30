@@ -32,11 +32,11 @@ class GUIclient:
     max_delay = 60
 
     # How long to wait for a connection to establish
-    connection_timeout = 30
+    connection_timeout = 120
 
     # How long after which to invalidate a rendering request
     # Avoids clogging the pipeline with waiting (and usually expired) requests
-    request_expiry = 30
+    request_expiry = 300
 
     max_concurrent = 5
 
