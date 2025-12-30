@@ -498,52 +498,71 @@ def clean_username(username):
     return cleaned
 
 async def fetch_leaderboard_data(leaderboard_type="day"):
-    """Lấy dữ liệu bảng xếp hạng từ API"""
-    try:
-        print(f"📡 Đang lấy dữ liệu bảng xếp hạng {leaderboard_type}...")
+    """Lấy dữ liệu bảng xếp hạng từ API với cơ chế retry"""
+    retry_count = 5
+    base_delay = 2
+    
+    for attempt in range(retry_count):
+        try:
+            print(f"📡 Đang lấy dữ liệu bảng xếp hạng {leaderboard_type} (Lần {attempt + 1}/{retry_count})...")
+            
+            async with aiohttp.ClientSession() as session:
+                url = f"{API_BASE_URL}?type={leaderboard_type}"
+                # Timeout cho request là 10 giây
+                async with session.get(url, timeout=10) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        
+                        # Kiểm tra dữ liệu có hợp lệ không
+                        if not data or 'leaderboard' not in data:
+                            print(f"⚠️ Dữ liệu API trả về không hợp lệ (Lần {attempt + 1})")
+                            raise ValueError("Invalid API response format")
+                            
+                        print(f"✅ Đã lấy được {len(data.get('leaderboard', []))} người dùng")
+                        
+                        # Chuyển đổi dữ liệu API thành format bot
+                        leaderboard_data = []
+                        for user in data.get('leaderboard', []):
+                            # Lưu avatar hash để GUI system xử lý
+                            avatar_hash = user.get('avatar')
+                            
+                            # Tạo avatar URL cho debug (không dùng trong GUI)
+                            avatar_url = None
+                            if avatar_hash:
+                                avatar_url = f"https://cdn.discordapp.com/avatars/{user['userId']}/{avatar_hash}.png?size=256"
+                            else:
+                                avatar_url = "https://cdn.discordapp.com/embed/avatars/0.png"
+                            
+                            # Chuyển đổi studyTime từ milliseconds sang giây
+                            study_time_seconds = user['studyTime'] // 1000  # Chia 1000 để chuyển từ ms sang giây
+                            
+                            # Làm sạch tên người dùng (loại bỏ emoji)
+                            clean_name = clean_username(user['userName'])
+                            
+                            leaderboard_data.append({
+                                "displayName": clean_name,  # Tên đã được làm sạch
+                                "dayTrackTime": study_time_seconds,
+                                "avatarURL": avatar_url,  # Để debug
+                                "avatarHash": avatar_hash,  # Để GUI system sử dụng
+                                "userId": user['userId']
+                            })
+                        
+                        return leaderboard_data
+                    else:
+                        print(f"❌ API trả về lỗi: {response.status} (Lần {attempt + 1})")
+                        # Nếu lỗi 404 hoặc 403 thì có thể không cần retry, nhưng tạm thời cứ retry cho chắc
         
-        async with aiohttp.ClientSession() as session:
-            url = f"{API_BASE_URL}?type={leaderboard_type}"
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ Đã lấy được {len(data.get('leaderboard', []))} người dùng")
-                    
-                    # Chuyển đổi dữ liệu API thành format bot
-                    leaderboard_data = []
-                    for user in data.get('leaderboard', []):
-                        # Lưu avatar hash để GUI system xử lý
-                        avatar_hash = user.get('avatar')
-                        
-                        # Tạo avatar URL cho debug (không dùng trong GUI)
-                        avatar_url = None
-                        if avatar_hash:
-                            avatar_url = f"https://cdn.discordapp.com/avatars/{user['userId']}/{avatar_hash}.png?size=256"
-                        else:
-                            avatar_url = "https://cdn.discordapp.com/embed/avatars/0.png"
-                        
-                        # Chuyển đổi studyTime từ milliseconds sang giây
-                        study_time_seconds = user['studyTime'] // 1000  # Chia 1000 để chuyển từ ms sang giây
-                        
-                        # Làm sạch tên người dùng (loại bỏ emoji)
-                        clean_name = clean_username(user['userName'])
-                        
-                        leaderboard_data.append({
-                            "displayName": clean_name,  # Tên đã được làm sạch
-                            "dayTrackTime": study_time_seconds,
-                            "avatarURL": avatar_url,  # Để debug
-                            "avatarHash": avatar_hash,  # Để GUI system sử dụng
-                            "userId": user['userId']
-                        })
-                    
-                    return leaderboard_data
-                else:
-                    print(f"❌ API trả về lỗi: {response.status}")
-                    return None
-                    
-    except Exception as e:
-        print(f"❌ Lỗi khi lấy dữ liệu API: {e}")
-        return None
+        except Exception as e:
+            print(f"⚠️ Lỗi khi lấy dữ liệu API (Lần {attempt + 1}): {e}")
+        
+        # Nếu chưa phải lần cuối thì chờ rồi thử lại
+        if attempt < retry_count - 1:
+            delay = base_delay * (2 ** attempt)  # 2, 4, 8, 16...
+            print(f"⏳ Đợi {delay} giây trước khi thử lại...")
+            await asyncio.sleep(delay)
+            
+    print("❌ Đã hết số lần thử lại. Không lấy được dữ liệu.")
+    return None
 
 async def render_leaderboard_image(data):
     """Render bảng xếp hạng thành ảnh qua GUI client của LionBot"""
