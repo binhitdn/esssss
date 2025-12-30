@@ -52,13 +52,23 @@ except Exception as e:
 # 4. Test HTTP Request
 print("\n--- Testing HTTP Request ---")
 try:
-    response = requests.get(API_URL, timeout=5)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    response = requests.get(API_URL, headers=headers, timeout=5)
     print(f"Outcome: Status {response.status_code}")
+    
     if response.status_code == 200:
         print("✅ API is responding correctly!")
         print(f"Data sample: {str(response.content)[:100]}...")
+    elif response.status_code == 403:
+        print("❌ 403 Forbidden. This usually means:")
+        print("1. Cloudflare/WAF is blocking python requests.")
+        print("2. Server requires specific API Key/Headers.")
+        print(f"Response Body: {response.text[:200]}")
     else:
         print("❌ API returned error status")
+        print(f"Response Body: {response.text[:200]}")
 except Exception as e:
     print(f"❌ HTTP Request failed: {e}")
 
