@@ -62,9 +62,64 @@ init_db()
 
 # --- Tracking Logic ---
 class VoiceTrackerBot(discord.Client):
-# ... (rest of class init) ...
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.voice_states = True
+        intents.members = True # Needed to get usernames
+        super().__init__(intents=intents)
+        
+        # Memory storage for active sessions
+        # user_id -> { 'last_update': timestamp, 'cam': bool, 'stream': bool, 'channel': channel_id }
+        self.active_sessions = {}
+        self.db_conn = sqlite3.connect(DB_FILE) 
+        self.db_conn.close() 
 
-# ... (inside background_updater) ...
+    def get_db_connection(self):
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    async def on_ready(self):
+        print(f'✅ Voice Tracker Service logged in as {self.user}')
+        print('👀 Monitoring voice channels...')
+        # Re-scan all channels to catch up state if bot restarted
+        for guild in self.guilds:
+            for vc in guild.voice_channels:
+                for member in vc.members:
+                    if not member.bot:
+                        self.active_sessions[member.id] = {
+                            'last_update': time.time(),
+                            'cam': member.voice.self_video,
+                            'stream': member.voice.self_stream,
+                            'channel': vc.id
+                        }
+        print(f'📊 Initialized {len(self.active_sessions)} active sessions.')
+
+        # Start API Server
+        app = web.Application()
+        app.add_routes([
+            web.get('/api/stats/{user_id}', self.handle_get_stats),
+            web.get('/api/leaderboard', self.handle_get_leaderboard),
+            web.get('/', self.handle_root)
+        ])
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', API_PORT)
+        await site.start()
+        print(f'🚀 API Server running on port {API_PORT}')
+        
+        if not hasattr(self, 'bg_task'):
+            # Start background updater only once
+            self.bg_task = self.loop.create_task(self.background_updater())
+
+    async def background_updater(self):
+        await self.wait_until_ready()
+        while not self.is_closed():
+            try:
+                # print("🔄 Running periodic update...")
+                now = time.time()
+                updates = []
+                
                 # 1. Calculate deltas in memory
                 for user_id, session in list(self.active_sessions.items()):
                     delta = now - session['last_update']
