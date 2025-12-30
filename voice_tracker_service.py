@@ -158,7 +158,9 @@ class VoiceTrackerBot(discord.Client):
                                 c.execute('UPDATE user_stats SET total_stream_seconds = total_stream_seconds + ? WHERE user_id = ?', (u['delta'], u['user_id']))
                         
                         conn.commit()
-                        # print(f"✅ Batch updated {len(updates)} users.")
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        users_updated = ", ".join([u['username'] for u in updates])
+                        print(f"[{timestamp}] 💾 Saved data for {len(updates)} users: {users_updated}")
                     except Exception as e:
                         print(f"⚠️ Batch update failed: {e}")
                         conn.rollback()
@@ -202,6 +204,7 @@ class VoiceTrackerBot(discord.Client):
 
         user_id = member.id
         now = time.time()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # 1. Handle Existing Session (End it or Update it)
         if user_id in self.active_sessions:
@@ -217,21 +220,40 @@ class VoiceTrackerBot(discord.Client):
                 session['stream']
             )
 
-        # 2. Determine New State
+        # 2. Determine New State and LOG CHANGES
         if after.channel is None:
             # User left voice
             if user_id in self.active_sessions:
                 del self.active_sessions[user_id]
-                # print(f"👋 {member.name} left voice.")
+                print(f"[{timestamp}] 👋 {member.name} left voice channel.")
         else:
             # User joined or changed state (cam/stream)
+            action = "joined"
+            details = []
+            
+            if user_id in self.active_sessions:
+                action = "updated"
+            
+            if after.self_video != before.self_video:
+                status = "ON" if after.self_video else "OFF"
+                details.append(f"Cam {status}")
+            
+            if after.self_stream != before.self_stream:
+                status = "ON" if after.self_stream else "OFF"
+                details.append(f"Share {status}")
+            
+            if not details and action == "joined":
+                details.append("Voice Only")
+                
+            if details or action == "joined":
+                print(f"[{timestamp}] 🎙️ {member.name} {action}: {', '.join(details)}")
+
             self.active_sessions[user_id] = {
                 'last_update': now,
                 'cam': after.self_video,
                 'stream': after.self_stream,
                 'channel': after.channel.id
             }
-            # print(f"🎙️ {member.name} update: Cam={after.self_video}, Stream={after.self_stream}")
 
     # --- API Handlers ---
     async def handle_root(self, request):
