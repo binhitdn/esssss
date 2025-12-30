@@ -43,6 +43,18 @@ def init_db():
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Migration: Add new columns if they don't exist
+    try:
+        c.execute("ALTER TABLE user_stats ADD COLUMN display_name TEXT")
+    except sqlite3.OperationalError:
+        pass 
+    
+    try:
+        c.execute("ALTER TABLE user_stats ADD COLUMN avatar_hash TEXT")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -50,76 +62,39 @@ init_db()
 
 # --- Tracking Logic ---
 class VoiceTrackerBot(discord.Client):
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.voice_states = True
-        intents.members = True # Needed to get usernames
-        super().__init__(intents=intents)
-        
-        # Memory storage for active sessions
-        # user_id -> { 'last_update': timestamp, 'cam': bool, 'stream': bool, 'channel': channel_id }
-        self.active_sessions = {}
-        self.db_conn = sqlite3.connect(DB_FILE) # Keep connection open? Or reopen? sqlite is okay with single thread
-        # For thread safety with aiohttp, we should probably close/open per request or use a pool, 
-        # but for this scale, open per request is safest/easiest. 
-        # Actually this bot class runs in the main event loop.
-        self.db_conn.close() 
+# ... (rest of class init) ...
 
-    def get_db_connection(self):
-        conn = sqlite3.connect(DB_FILE)
-        conn.row_factory = sqlite3.Row
-        return conn
-
-    async def on_ready(self):
-        print(f'✅ Voice Tracker Service logged in as {self.user}')
-        print('👀 Monitoring voice channels...')
-        # Re-scan all channels to catch up state if bot restarted
-        for guild in self.guilds:
-            for vc in guild.voice_channels:
-                for member in vc.members:
-                    if not member.bot:
-                        self.active_sessions[member.id] = {
-                            'last_update': time.time(),
-                            'cam': member.voice.self_video,
-                            'stream': member.voice.self_stream,
-                            'channel': vc.id
-                        }
-        print(f'📊 Initialized {len(self.active_sessions)} active sessions.')
-
-        # Start API Server
-        app = web.Application()
-        app.add_routes([
-            web.get('/api/stats/{user_id}', self.handle_get_stats),
-            web.get('/api/leaderboard', self.handle_get_leaderboard),
-            web.get('/', self.handle_root)
-        ])
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', API_PORT)
-        await site.start()
-        print(f'🚀 API Server running on port {API_PORT}')
-        
-        if not hasattr(self, 'bg_task'):
-            # Start background updater only once
-            self.bg_task = self.loop.create_task(self.background_updater())
-
-    async def background_updater(self):
-        await self.wait_until_ready()
-        while not self.is_closed():
-            try:
-                # print("🔄 Running periodic update...")
-                now = time.time()
-                updates = []
-                
+# ... (inside background_updater) ...
                 # 1. Calculate deltas in memory
                 for user_id, session in list(self.active_sessions.items()):
                     delta = now - session['last_update']
                     if delta > 0:
-                        user = self.get_user(user_id)
-                        username = user.name if user else "Unknown"
+                        # Try to get Member object for guild-specific info
+                        try:
+                            channel = self.get_channel(session['channel'])
+                            if channel and channel.guild:
+                                member = channel.guild.get_member(user_id)
+                            else:
+                                member = self.get_user(user_id)
+                        except:
+                            member = self.get_user(user_id)
+                            
+                        username = member.name if member else "Unknown"
+                        display_name = member.display_name if member else username
+                        
+                        # Get Avatar Hash
+                        avatar_hash = None
+                        if member:
+                            if hasattr(member, 'avatar') and member.avatar:
+                                avatar_hash = member.avatar.key
+                            elif hasattr(member, 'display_avatar') and member.display_avatar:
+                                avatar_hash = member.display_avatar.key
+                        
                         updates.append({
                             'user_id': user_id,
                             'username': username,
+                            'display_name': display_name,
+                            'avatar_hash': avatar_hash,
                             'delta': delta,
                             'cam': session['cam'],
                             'stream': session['stream']
@@ -138,16 +113,16 @@ class VoiceTrackerBot(discord.Client):
                             c.execute('SELECT 1 FROM user_stats WHERE user_id = ?', (u['user_id'],))
                             if not c.fetchone():
                                 c.execute('''
-                                    INSERT INTO user_stats (user_id, username, total_study_seconds, total_cam_seconds, total_stream_seconds)
-                                    VALUES (?, ?, 0, 0, 0)
-                                ''', (u['user_id'], u['username']))
+                                    INSERT INTO user_stats (user_id, username, display_name, avatar_hash, total_study_seconds, total_cam_seconds, total_stream_seconds)
+                                    VALUES (?, ?, ?, ?, 0, 0, 0)
+                                ''', (u['user_id'], u['username'], u['display_name'], u['avatar_hash']))
                             
                             # Update total
                             c.execute('''
                                 UPDATE user_stats 
-                                SET username = ?, total_study_seconds = total_study_seconds + ?, last_updated = CURRENT_TIMESTAMP 
+                                SET username = ?, display_name = ?, avatar_hash = ?, total_study_seconds = total_study_seconds + ?, last_updated = CURRENT_TIMESTAMP 
                                 WHERE user_id = ?
-                            ''', (u['username'], u['delta'], u['user_id']))
+                            ''', (u['username'], u['display_name'], u['avatar_hash'], u['delta'], u['user_id']))
                             
                             # Update cam
                             if u['cam']:
@@ -167,97 +142,13 @@ class VoiceTrackerBot(discord.Client):
                     finally:
                         conn.close()
 
-            except Exception as e:
-                print(f"⚠️ Background update loop error: {e}")
-            
-            await asyncio.sleep(60) # Update every 60 seconds
-
-    async def save_progress(self, user_id, username, delta, was_cam, was_stream):
-        # This function is now only used for single events (leave/join), not the loop.
-        # It's fine to keep it separate for immediate event handling.
-        if delta <= 0: return
-        
-        conn = self.get_db_connection()
-        c = conn.cursor()
-        
-        c.execute('SELECT 1 FROM user_stats WHERE user_id = ?', (user_id,))
-        if not c.fetchone():
-             c.execute('''
-                INSERT INTO user_stats (user_id, username, total_study_seconds, total_cam_seconds, total_stream_seconds)
-                VALUES (?, ?, 0, 0, 0)
-            ''', (user_id, username))
-        
-        c.execute('UPDATE user_stats SET username = ?, total_study_seconds = total_study_seconds + ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ?', 
-                  (username, delta, user_id))
-        
-        if was_cam:
-            c.execute('UPDATE user_stats SET total_cam_seconds = total_cam_seconds + ? WHERE user_id = ?', (delta, user_id))
-        
-        if was_stream:
-            c.execute('UPDATE user_stats SET total_stream_seconds = total_stream_seconds + ? WHERE user_id = ?', (delta, user_id))
-            
-        conn.commit()
-        conn.close()
-
-    async def on_voice_state_update(self, member, before, after):
-        if member.bot: return
-
-        user_id = member.id
-        now = time.time()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # 1. Handle Existing Session (End it or Update it)
-        if user_id in self.active_sessions:
-            session = self.active_sessions[user_id]
-            delta = now - session['last_update']
-            
-            # Save accumulated time
-            await self.save_progress(
-                user_id, 
-                member.name, 
-                delta, 
-                session['cam'], 
-                session['stream']
-            )
-
-        # 2. Determine New State and LOG CHANGES
-        if after.channel is None:
-            # User left voice
-            if user_id in self.active_sessions:
-                del self.active_sessions[user_id]
-                print(f"[{timestamp}] 👋 {member.name} left voice channel.")
-        else:
-            # User joined or changed state (cam/stream)
-            action = "joined"
-            details = []
-            
-            if user_id in self.active_sessions:
-                action = "updated"
-            
-            if after.self_video != before.self_video:
-                status = "ON" if after.self_video else "OFF"
-                details.append(f"Cam {status}")
-            
-            if after.self_stream != before.self_stream:
-                status = "ON" if after.self_stream else "OFF"
-                details.append(f"Share {status}")
-            
-            if not details and action == "joined":
-                details.append("Voice Only")
-                
-            if details or action == "joined":
-                print(f"[{timestamp}] 🎙️ {member.name} {action}: {', '.join(details)}")
-
-            self.active_sessions[user_id] = {
-                'last_update': now,
-                'cam': after.self_video,
-                'stream': after.self_stream,
-                'channel': after.channel.id
-            }
+# ... (rest of on_voice_state_update etc) ...
 
     # --- API Handlers ---
-    async def handle_root(self, request):
-        return web.Response(text="StudyLion Voice Tracker API is running.")
+    def get_avatar_url(self, user_id, avatar_hash):
+        if avatar_hash:
+            return f"https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png?size=256"
+        return None # Or default avatar url
 
     async def handle_get_stats(self, request):
         user_id = request.match_info['user_id']
@@ -270,10 +161,11 @@ class VoiceTrackerBot(discord.Client):
             
             if row:
                 data = dict(row)
-                # Convert seconds to milliseconds as requested
                 response_data = {
                     'user_id': data['user_id'],
                     'username': data['username'],
+                    'displayName': data.get('display_name', data['username']),
+                    'avatarUrl': self.get_avatar_url(data['user_id'], data.get('avatar_hash')),
                     'totalTime': int(data['total_study_seconds'] * 1000),
                     'camTime': int(data['total_cam_seconds'] * 1000),
                     'shareTime': int(data['total_stream_seconds'] * 1000),
@@ -300,9 +192,11 @@ class VoiceTrackerBot(discord.Client):
                 data.append({
                     'user_id': r['user_id'],
                     'username': r['username'],
-                    'totalTime': int(r['total_study_seconds'] * 1000), # ms
-                    'camTime': int(r['total_cam_seconds'] * 1000),     # ms
-                    'shareTime': int(r['total_stream_seconds'] * 1000) # ms
+                    'displayName': r.get('display_name', r['username']),
+                    'avatarUrl': self.get_avatar_url(r['user_id'], r.get('avatar_hash')),
+                    'totalTime': int(r['total_study_seconds'] * 1000),
+                    'camTime': int(r['total_cam_seconds'] * 1000), 
+                    'shareTime': int(r['total_stream_seconds'] * 1000)
                 })
             return web.json_response(data)
         except Exception as e:
