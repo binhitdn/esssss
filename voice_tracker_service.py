@@ -326,29 +326,47 @@ class VoiceTrackerBot(discord.Client):
             conn = self.get_db_connection()
             c = conn.cursor()
             
-            # Get pagination params
+            # Get pagination and sort params
             try:
                 page = int(request.query.get('page', 1))
                 limit = int(request.query.get('limit', 10))
+                sort_type = request.query.get('sort', 'time_desc') # default to total time
             except ValueError:
                 page = 1
                 limit = 10
+                sort_type = 'time_desc'
             
             offset = (page - 1) * limit
             
+            # Determine ORDER BY clause
+            if sort_type == 'ratio_asc':
+                # (Cam + Stream) / Total. Use MAX(..., 1) to avoid divide by zero
+                order_clause = 'CAST(total_cam_seconds + total_stream_seconds AS FLOAT) / MAX(total_study_seconds, 1) ASC'
+            elif sort_type == 'ratio_desc':
+                 order_clause = 'CAST(total_cam_seconds + total_stream_seconds AS FLOAT) / MAX(total_study_seconds, 1) DESC'
+            else:
+                order_clause = 'total_study_seconds DESC'
+
             # Get total count
             c.execute('SELECT COUNT(*) FROM user_stats')
             total_users = c.fetchone()[0]
             total_pages = (total_users + limit - 1) // limit
             
             # Get paginated data
-            c.execute('SELECT * FROM user_stats ORDER BY total_study_seconds DESC LIMIT ? OFFSET ?', (limit, offset))
+            query = f'SELECT *, (CAST(total_cam_seconds + total_stream_seconds AS FLOAT) / MAX(total_study_seconds, 1)) as ratio FROM user_stats ORDER BY {order_clause} LIMIT ? OFFSET ?'
+            c.execute(query, (limit, offset))
             rows = c.fetchall()
             conn.close()
             
             data = []
             for row in rows:
                 r = dict(row)
+                # Calculate ratio if not present in row (though it should be)
+                ratio = r.get('ratio')
+                if ratio is None:
+                     total = max(r['total_study_seconds'], 1)
+                     ratio = (r['total_cam_seconds'] + r['total_stream_seconds']) / total
+
                 data.append({
                     'user_id': r['user_id'],
                     'username': r['username'],
@@ -356,7 +374,8 @@ class VoiceTrackerBot(discord.Client):
                     'avatarUrl': self.get_avatar_url(r['user_id'], r.get('avatar_hash')),
                     'totalTime': int(r['total_study_seconds'] * 1000),
                     'camTime': int(r['total_cam_seconds'] * 1000), 
-                    'shareTime': int(r['total_stream_seconds'] * 1000)
+                    'shareTime': int(r['total_stream_seconds'] * 1000),
+                    'ratio': float(f"{ratio:.4f}") # 4 decimal places
                 })
             
             response = {
