@@ -64,15 +64,18 @@ class LeaderboardBot(commands.Bot):
             print(f"🏆 Bot bảng xếp hạng sẵn sàng")
             print(f"🎯 Server được phép: {ALLOWED_SERVER_ID}")
             
-            # Set status
-            print("📝 Đang set status...")
-            await self.change_presence(
-                activity=discord.Activity(
-                    type=discord.ActivityType.watching,
-                    name="bảng xếp hạng 🏆"
-                )
-            )
-            print("✅ Đã set status")
+            # Set status to offline (invisible)
+            print("📝 Đang set status offline...")
+            await self.change_presence(status=discord.Status.invisible)
+            print("✅ Đã set status offline")
+            
+            # Kiểm tra và rời khỏi các server không được phép
+            print("🕵️ Đang kiểm tra danh sách server...")
+            for guild in self.guilds:
+                if guild.id != ALLOWED_SERVER_ID:
+                    print(f"⚠️ Phát hiện server không được phép: {guild.name} ({guild.id})")
+                    print("🚪 Đang rời server...")
+                    await guild.leave()
             
             # Khởi động scheduled tasks
             print("⏰ Checking tasks...")
@@ -356,7 +359,15 @@ def generate_leaderboard_text(data, period_type, period_name):
         else:
             mention = f"@{member['displayName']}"
         
-        text += f"{i}. {time_str}: {mention}\n"
+        if i <= 3:
+            # Top 3: In đậm
+            text += f"**{i}. {time_str}: {mention}**\n"
+            # Thêm dòng trống sau top 3
+            if i == 3:
+                text += "\n"
+        else:
+            # Top 4-10: Bình thường
+            text += f"{i}. {time_str}: {mention}\n"
 
     # Date info
     text += f"\n**{date_str_footer}**\n\n"
@@ -576,8 +587,29 @@ async def render_leaderboard_image(data):
             }
         )
         
-        print(f"✅ Render thành công: {len(image_data)} bytes")
-        return image_data
+        if image_data:
+            print(f"✅ Render thành công: {len(image_data)} bytes")
+            
+            # Upscale ảnh lên 2x để hiển thị to hơn trên Discord
+            try:
+                from PIL import Image
+                with BytesIO(image_data) as bio:
+                    img = Image.open(bio)
+                    # Resize x2
+                    new_size = (int(img.width * 2), int(img.height * 2))
+                    img = img.resize(new_size, Image.Resampling.LANCZOS)
+                    
+                    # Save back to bytes
+                    out_bio = BytesIO()
+                    img.save(out_bio, format='PNG')
+                    image_data = out_bio.getvalue()
+                    print(f"✅ Đã upscale ảnh: {new_size} - {len(image_data)} bytes")
+            except Exception as e:
+                print(f"⚠️ Không thể upscale ảnh: {e}")
+                
+            return image_data
+        else:
+            return None
                     
     except Exception as e:
         print(f"❌ Lỗi render ảnh: {e}")
