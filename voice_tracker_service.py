@@ -325,8 +325,24 @@ class VoiceTrackerBot(discord.Client):
         try:
             conn = self.get_db_connection()
             c = conn.cursor()
-            limit = request.query.get('limit', 10)
-            c.execute('SELECT * FROM user_stats ORDER BY total_study_seconds DESC LIMIT ?', (limit,))
+            
+            # Get pagination params
+            try:
+                page = int(request.query.get('page', 1))
+                limit = int(request.query.get('limit', 10))
+            except ValueError:
+                page = 1
+                limit = 10
+            
+            offset = (page - 1) * limit
+            
+            # Get total count
+            c.execute('SELECT COUNT(*) FROM user_stats')
+            total_users = c.fetchone()[0]
+            total_pages = (total_users + limit - 1) // limit
+            
+            # Get paginated data
+            c.execute('SELECT * FROM user_stats ORDER BY total_study_seconds DESC LIMIT ? OFFSET ?', (limit, offset))
             rows = c.fetchall()
             conn.close()
             
@@ -342,7 +358,17 @@ class VoiceTrackerBot(discord.Client):
                     'camTime': int(r['total_cam_seconds'] * 1000), 
                     'shareTime': int(r['total_stream_seconds'] * 1000)
                 })
-            return web.json_response(data)
+            
+            response = {
+                'data': data,
+                'pagination': {
+                    'currentPage': page,
+                    'totalPages': total_pages,
+                    'totalUsers': total_users,
+                    'limit': limit
+                }
+            }
+            return web.json_response(response)
         except Exception as e:
             return web.json_response({'error': str(e)}, status=500)
 
