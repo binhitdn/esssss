@@ -142,7 +142,93 @@ class VoiceTrackerBot(discord.Client):
                     finally:
                         conn.close()
 
-# ... (rest of on_voice_state_update etc) ...
+            except Exception as e:
+                print(f"⚠️ Background update loop error: {e}")
+            
+            await asyncio.sleep(60) # Update every 60 seconds
+
+    async def save_progress(self, user_id, username, delta, was_cam, was_stream):
+        # This function is now only used for single events (leave/join), not the loop.
+        # It's fine to keep it separate for immediate event handling.
+        if delta <= 0: return
+        
+        conn = self.get_db_connection()
+        c = conn.cursor()
+        
+        c.execute('SELECT 1 FROM user_stats WHERE user_id = ?', (user_id,))
+        if not c.fetchone():
+             c.execute('''
+                INSERT INTO user_stats (user_id, username, display_name, avatar_hash, total_study_seconds, total_cam_seconds, total_stream_seconds)
+                VALUES (?, ?, ?, ?, 0, 0, 0)
+            ''', (user_id, username, username, None))
+        
+        c.execute('UPDATE user_stats SET username = ?, total_study_seconds = total_study_seconds + ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ?', 
+                  (username, delta, user_id))
+        
+        if was_cam:
+            c.execute('UPDATE user_stats SET total_cam_seconds = total_cam_seconds + ? WHERE user_id = ?', (delta, user_id))
+        
+        if was_stream:
+            c.execute('UPDATE user_stats SET total_stream_seconds = total_stream_seconds + ? WHERE user_id = ?', (delta, user_id))
+            
+        conn.commit()
+        conn.close()
+
+    async def on_voice_state_update(self, member, before, after):
+        if member.bot: return
+
+        user_id = member.id
+        now = time.time()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 1. Handle Existing Session (End it or Update it)
+        if user_id in self.active_sessions:
+            session = self.active_sessions[user_id]
+            delta = now - session['last_update']
+            
+            # Save accumulated time
+            await self.save_progress(
+                user_id, 
+                member.name, 
+                delta, 
+                session['cam'], 
+                session['stream']
+            )
+
+        # 2. Determine New State and LOG CHANGES
+        if after.channel is None:
+            # User left voice
+            if user_id in self.active_sessions:
+                del self.active_sessions[user_id]
+                print(f"[{timestamp}] 👋 {member.name} left voice channel.")
+        else:
+            # User joined or changed state (cam/stream)
+            action = "joined"
+            details = []
+            
+            if user_id in self.active_sessions:
+                action = "updated"
+            
+            if after.self_video != before.self_video:
+                status = "ON" if after.self_video else "OFF"
+                details.append(f"Cam {status}")
+            
+            if after.self_stream != before.self_stream:
+                status = "ON" if after.self_stream else "OFF"
+                details.append(f"Share {status}")
+            
+            if not details and action == "joined":
+                details.append("Voice Only")
+                
+            if details or action == "joined":
+                print(f"[{timestamp}] 🎙️ {member.name} {action}: {', '.join(details)}")
+
+            self.active_sessions[user_id] = {
+                'last_update': now,
+                'cam': after.self_video,
+                'stream': after.self_stream,
+                'channel': after.channel.id
+            }
 
     # --- API Handlers ---
     def get_avatar_url(self, user_id, avatar_hash):
