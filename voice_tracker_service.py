@@ -95,12 +95,34 @@ class VoiceTrackerBot(discord.Client):
                         }
         print(f'📊 Initialized {len(self.active_sessions)} active sessions.')
 
+        # Database connection for API
+        async def db_handler(request):
+            return self.get_db_connection()
+
+        # Middleware for CORS
+        @web.middleware
+        async def cors_middleware(request, handler):
+            if request.method == 'OPTIONS':
+                response = web.Response()
+            else:
+                try:
+                    response = await handler(request)
+                except web.HTTPException as ex:
+                    response = ex
+            
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            return response
+
         # Start API Server
-        app = web.Application()
+        app = web.Application(middlewares=[cors_middleware])
         app.add_routes([
             web.get('/api/stats/{user_id}', self.handle_get_stats),
             web.get('/api/leaderboard', self.handle_get_leaderboard),
-            web.get('/', self.handle_root)
+            web.get('/', self.handle_root),
+            web.options('/api/stats/{user_id}', self.handle_options), # Handle manual OPTIONS if middleware doesn't catch all
+            web.options('/api/leaderboard', self.handle_options)
         ])
         runner = web.AppRunner(app)
         await runner.setup()
@@ -288,6 +310,10 @@ class VoiceTrackerBot(discord.Client):
     # --- API Handlers ---
     async def handle_root(self, request):
         return web.Response(text="StudyLion Voice Tracker API is running.")
+
+    async def handle_options(self, request):
+         # Middleware handles the headers, just return OK
+        return web.Response(text="OK")
 
     def get_avatar_url(self, user_id, avatar_hash):
         if avatar_hash:
