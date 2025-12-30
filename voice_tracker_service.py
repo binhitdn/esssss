@@ -99,8 +99,9 @@ class VoiceTrackerBot(discord.Client):
         await site.start()
         print(f'🚀 API Server running on port {API_PORT}')
         
-        # Start background updater
-        self.bg_task = self.loop.create_task(self.background_updater())
+        if not hasattr(self, 'bg_task'):
+            # Start background updater only once
+            self.bg_task = self.loop.create_task(self.background_updater())
 
     async def background_updater(self):
         await self.wait_until_ready()
