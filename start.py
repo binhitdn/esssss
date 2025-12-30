@@ -74,7 +74,7 @@ def start_gui_server():
     try:
         process = subprocess.Popen([
             'venv/bin/python', 'scripts/start_gui.py'
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
         # Đợi GUI server khởi động
         time.sleep(3)
@@ -84,19 +84,33 @@ def start_gui_server():
             return process
         else:
             stdout, stderr = process.communicate()
-            print(f"❌ GUI server lỗi: {stderr.decode()}")
+            print(f"❌ GUI server lỗi: {stdout.decode()}") # stderr merged to stdout
             return None
             
     except Exception as e:
         print(f"❌ Không thể khởi động GUI: {e}")
         return None
 
+
+
+def ensure_logs_dir():
+    """Đảm bảo thư mục logs tồn tại"""
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+        print("📁 Đã tạo thư mục logs")
+
 def start_bot():
     """Khởi động bot"""
     print("🏆 Khởi động leaderboard bot...")
     
+    ensure_logs_dir()
+    
     try:
-        log_file = open('logs/bot_debug.log', 'w')
+        # Use append mode and line buffering
+        log_file = open('logs/bot_debug.log', 'a', buffering=1)
+        # Write a separator for new run
+        log_file.write(f"\n{'='*20} RESTART {time.strftime('%Y-%m-%d %H:%M:%S')} {'='*20}\n")
+        
         process = subprocess.Popen([
             'venv/bin/python', '-u', 'leaderboard_only_bot.py'
         ], stdout=log_file, stderr=subprocess.STDOUT)
@@ -112,8 +126,8 @@ def start_bot():
             return None, log_file
             
     except Exception as e:
-        print(f"❌ Không thể khởi động bot: {e}")
-        return None
+        print(f"❌ Không thể khởi động bot: {e}", file=sys.stderr)
+        return None, None
 
 def monitor_output(process, name):
     """Theo dõi output của process"""
