@@ -24,15 +24,37 @@ async def test_connection():
     print("📡 Connecting to GUI server...")
     
     try:
-        # We'll try a dummy request or just a simple ping if available, 
-        # but since there's no ping, we'll try a render request that might fail but verifies connection
-        print("📤 Sending test request...")
-        # Sending a request intended to fail fast or succeed
-        # Using a non-existent route to check connectivity
-        response = await client.request('ping_test', args=(), kwargs={})
-        print(f"✅ Connection successful! Response: {response}")
+        print("📤 Sending test LEADERBOARD request...")
+        
+        # Prepare sample data for leaderboard
+        # Structure: (userid, position, time, name, avatar_key)
+        sample_entries = [
+            (123456789, 1, 3600 * 10, "User One", (0, None)),
+            (987654321, 2, 3600 * 5, "User Two", (0, None)),
+            (456123789, 3, 3600 * 2, "User Three", (0, None))
+        ]
+        
+        # Request arguments matching LeaderboardCard signature
+        # kwargs needs: server_name, entries, highlight
+        kwargs = {
+            'server_name': 'Debug Server',
+            'entries': sample_entries,
+            'highlight': None
+        }
+        
+        # Send request
+        response = await client.request('leaderboard_card', args=(), kwargs=kwargs)
+        
+        if response:
+            print(f"✅ Render successful! Received {len(response)} bytes of image data.")
+            with open('debug_render_output.png', 'wb') as f:
+                f.write(response)
+            print("🖼️ Saved output to 'debug_render_output.png'")
+        else:
+            print("❌ Render returned header/empty response.")
+            
     except Exception as e:
-        print(f"❌ Connection failed: {e}")
+        print(f"❌ Request failed: {e}")
         import traceback
         traceback.print_exc()
 
