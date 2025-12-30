@@ -39,7 +39,8 @@ async def test_connection():
         kwargs = {
             'server_name': 'Debug Server',
             'entries': sample_entries,
-            'highlight': None
+            'highlight': None,
+            'locale': 'vi'
         }
         
         # Send request
