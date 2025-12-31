@@ -1,5 +1,6 @@
 from enum import IntEnum
 import asyncio
+from datetime import timedelta
 
 import discord
 from discord.ui.button import ButtonStyle, button, Button
@@ -92,7 +93,12 @@ class LeaderboardUI(StatsUI):
             self.current_period = LBPeriod.ALLTIME
         periods[LBPeriod.DAY] = lguild.today
         periods[LBPeriod.WEEK] = lguild.week_start
-        periods[LBPeriod.MONTH] = lguild.month_start
+
+        now = lguild.now
+        if now.year == 2026 and now.month == 1 and now.day == 1 and now.hour < 3:
+            periods[LBPeriod.MONTH] = (lguild.month_start - timedelta(days=1)).replace(day=1)
+        else:
+            periods[LBPeriod.MONTH] = lguild.month_start
         alltime = (lguild.data.first_joined_at or interaction.guild.created_at).astimezone(lguild.timezone)
         periods[LBPeriod.ALLTIME] = alltime
         self.period_starts = periods
