@@ -508,8 +508,14 @@ async def fetch_leaderboard_data(leaderboard_type="day"):
             
             async with aiohttp.ClientSession() as session:
                 url = f"{API_BASE_URL}?type={leaderboard_type}"
+                # Headers để tránh bị chặn (quan trọng là Referer)
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "application/json",
+                    "Referer": "https://14study.io.vn/"
+                }
                 # Timeout cho request là 10 giây
-                async with session.get(url, timeout=10) as response:
+                async with session.get(url, headers=headers, timeout=10) as response:
                     if response.status == 200:
                         data = await response.json()
                         
