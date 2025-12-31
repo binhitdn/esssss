@@ -359,15 +359,21 @@ def generate_leaderboard_text(data, period_type, period_name):
         else:
             mention = f"@{member['displayName']}"
         
-        if i <= 3:
-            # Top 3: In đậm
-            text += f"**{i}. {time_str}: {mention}**\n"
-            # Thêm dòng trống sau top 3
-            if i == 3:
-                text += "\n"
+        if i == 1:
+            prefix = "🥇"
+        elif i == 2:
+            prefix = "🥈"
+        elif i == 3:
+            prefix = "🥉" 
         else:
-            # Top 4-10: Bình thường
-            text += f"{i}. {time_str}: {mention}\n"
+            prefix = "🔹"
+
+        # Format: Icon Time: User
+        # Loại bỏ số thứ tự thừa, không xuống dòng thừa
+        if i <= 3:
+            text += f"**{prefix} {time_str}: {mention}**\n"
+        else:
+            text += f"{prefix} {time_str}: {mention}\n"
 
     # Date info
     text += f"\n**{date_str_footer}**\n\n"
