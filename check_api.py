@@ -53,7 +53,9 @@ except Exception as e:
 print("\n--- Testing HTTP Request ---")
 try:
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Referer': 'https://14study.io.vn/'
     }
     response = requests.get(API_URL, headers=headers, timeout=5)
     print(f"Outcome: Status {response.status_code}")

@@ -120,11 +120,9 @@ class VoiceTrackerBot(discord.Client):
         app.add_routes([
             web.get('/api/stats/{user_id}', self.handle_get_stats),
             web.get('/api/leaderboard', self.handle_get_leaderboard),
-            web.get('/api/live', self.handle_get_live),
             web.get('/', self.handle_root),
             web.options('/api/stats/{user_id}', self.handle_options), # Handle manual OPTIONS if middleware doesn't catch all
-            web.options('/api/leaderboard', self.handle_options),
-            web.options('/api/live', self.handle_options)
+            web.options('/api/leaderboard', self.handle_options)
         ])
         runner = web.AppRunner(app)
         await runner.setup()
@@ -303,12 +301,10 @@ class VoiceTrackerBot(discord.Client):
                 print(f"[{timestamp}] 🎙️ {member.name} {action}: {', '.join(details)}")
 
             self.active_sessions[user_id] = {
-                'start_time': now if action == "joined" else session.get('start_time', now),
                 'last_update': now,
                 'cam': after.self_video,
                 'stream': after.self_stream,
-                'channel': after.channel.id,
-                'channel_name': after.channel.name
+                'channel': after.channel.id
             }
 
     # --- API Handlers ---
@@ -324,49 +320,6 @@ class VoiceTrackerBot(discord.Client):
             return f"https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png?size=256"
         return None # Or default avatar url
     
-    async def handle_get_live(self, request):
-        try:
-            data = []
-            now = time.time()
-            for user_id, session in self.active_sessions.items():
-                # Try to get Member for display info
-                try:
-                    member = self.get_user(user_id)
-                    # Try to find in cache first if possible for guild info
-                    channel = self.get_channel(session['channel'])
-                    if channel and channel.guild:
-                        m = channel.guild.get_member(user_id)
-                        if m: member = m
-                except:
-                    member = None
-
-                if member:
-                    username = member.name
-                    display_name = member.display_name
-                    avatar_hash = member.avatar.key if member.avatar else (member.display_avatar.key if member.display_avatar else None)
-                else: 
-                    username = "Unknown"
-                    display_name = "Unknown"
-                    avatar_hash = None
-
-                # Calculate duration in current session
-                duration = int(now - session.get('start_time', session['last_update']))
-                
-                data.append({
-                    'user_id': user_id,
-                    'username': username,
-                    'displayName': display_name,
-                    'avatarUrl': self.get_avatar_url(user_id, avatar_hash),
-                    'channelId': session['channel'],
-                    'channelName': session.get('channel_name', 'Voice Channel'),
-                    'cam': session['cam'],
-                    'stream': session['stream'],
-                    'duration': duration # Seconds in current session
-                })
-            return web.json_response(data)
-        except Exception as e:
-            return web.json_response({'error': str(e)}, status=500)
-
     async def handle_get_stats(self, request):
         user_id = request.match_info['user_id']
         try:

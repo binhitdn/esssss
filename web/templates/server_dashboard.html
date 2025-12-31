@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyLion Dashboard - Server Analytics v2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2c3e50;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .server-info {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+        
+        .server-name {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .server-meta {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Stats Grid */
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        
+        /* Detailed Stats */
+        .detailed-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stats-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .stats-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-row-label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+        
+        .stat-row-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            padding: 1.5rem 2rem;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .section-count {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .section-content {
+            padding: 1.5rem 2rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        /* Custom scrollbar */
+        .section-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .section-content::-webkit-scrollbar-track {
+            background: #f1f2f6;
+            border-radius: 4px;
+        }
+        
+        .section-content::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 4px;
+        }
+        
+        .section-content::-webkit-scrollbar-thumb:hover {
+            background: #a5b4fc;
+        }
+        
+        /* Role Items */
+        .role-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .role-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--role-color, #667eea);
+            border-radius: 2px 0 0 2px;
+        }
+        
+        .role-item:hover {
+            background: #f1f3f4;
+            border-color: #d1d5db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .role-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .role-info h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+        }
+        
+        .role-details {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        .role-count {
+            background: var(--role-color, #667eea);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        /* Member Avatars */
+        .role-members {
+            margin-top: 1rem;
+        }
+        
+        .members-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.75rem;
+        }
+        
+        .members-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .member-avatar {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .member-avatar img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .member-avatar:hover img {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .member-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .member-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #2c3e50;
+        }
+        
+        .member-avatar:hover .member-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .status-online { background: #28a745; }
+        .status-idle { background: #ffc107; }
+        .status-dnd { background: #dc3545; }
+        .status-offline { background: #6c757d; }
+        
+        /* Voice Channels */
+        .voice-channel {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .voice-channel-name {
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .voice-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .voice-member {
+            background: #2196f3;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        /* Loading & Error States */
+        .loading, .error {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        
+        .loading i, .error i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        /* Refresh Button */
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Last Updated */
+        .last-updated {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .server-name {
+                font-size: 2rem;
+            }
+            
+            .server-meta {
+                gap: 1rem;
+            }
+            
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .detailed-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="server-info" id="serverHeader">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Đang tải thông tin server...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stats Overview -->
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="totalMembers">-</div>
+                <div class="stat-label">Tổng thành viên</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="onlineMembers">-</div>
+                <div class="stat-label">Đang online</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="totalRoles">-</div>
+                <div class="stat-label">Tổng roles</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-hashtag"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="textChannels">-</div>
+                <div class="stat-label">Text channels</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-volume-up"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="voiceChannels">-</div>
+                <div class="stat-label">Voice channels</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="boostCount">-</div>
+                <div class="stat-label">Server boosts</div>
+            </div>
+        </div>
+
+        <!-- Detailed Statistics -->
+        <div class="detailed-stats">
+            <div class="stats-section">
+                <div class="stats-title">
+                    <i class="fas fa-users"></i>
+                    Thống kê thành viên
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Thành viên thật</span>
+                    <span class="stat-row-value" id="humanCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Bot</span>
+                    <span class="stat-row-value" id="botCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Online</span>
+                    <span class="stat-row-value" id="onlineCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Idle</span>
+                    <span class="stat-row-value" id="idleCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Do Not Disturb</span>
+                    <span class="stat-row-value" id="dndCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Offline</span>
+                    <span class="stat-row-value" id="offlineCount">-</span>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <div class="stats-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Phân loại roles
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Admin roles</span>
+                    <span class="stat-row-value" id="adminRoleCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Top Week roles</span>
+                    <span class="stat-row-value" id="topWeekRoleCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Special roles</span>
+                    <span class="stat-row-value" id="specialRoleCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Bot roles</span>
+                    <span class="stat-row-value" id="botRoleCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Normal roles</span>
+                    <span class="stat-row-value" id="normalRoleCount">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-row-label">Level roles</span>
+                    <span class="stat-row-value" id="levelRoleCount">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Admin Roles -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-crown"></i>
+                        Admin Roles
+                    </div>
+                    <div class="section-count" id="adminCount">-</div>
+                </div>
+                <div class="section-content">
+                    <div id="adminRoles">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Đang tải admin roles...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Week Roles -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-trophy"></i>
+                        Top Week Roles
+                    </div>
+                    <div class="section-count" id="topWeekCount">-</div>
+                </div>
+                <div class="section-content">
+                    <div id="topWeekRoles">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Đang tải top week roles...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Special Roles -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-star"></i>
+                        Special Roles
+                    </div>
+                    <div class="section-count" id="specialCount">-</div>
+                </div>
+                <div class="section-content">
+                    <div id="specialRoles">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Đang tải special roles...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bot Roles -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-robot"></i>
+                        Bot Roles
+                    </div>
+                    <div class="section-count" id="botRolesCount">-</div>
+                </div>
+                <div class="section-content">
+                    <div id="botRoles">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Đang tải bot roles...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Members -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-users"></i>
+                    Top Members
+                </div>
+                <button class="refresh-btn" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i>
+                    Làm mới
+                </button>
+            </div>
+            <div class="section-content">
+                <div id="topMembers">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Đang tải thành viên...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Activity -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-microphone"></i>
+                    Hoạt động Voice Channels
+                </div>
+            </div>
+            <div class="section-content">
+                <div id="voiceActivity">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Đang tải hoạt động voice...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated"></div>
+    </div>
+
+    <script>
+        // Load data khi trang load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadServerData();
+            
+            // Auto refresh mỗi 60 giây
+            setInterval(loadServerData, 60000);
+        });
+        
+        function loadServerData() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    updateServerHeader(data.stats.server);
+                    updateStats(data.stats);
+                    updateAdminRoles(data.stats.roles.admin_roles);
+                    updateTopWeekRoles(data.stats.roles.top_week_roles);
+                    updateSpecialRoles(data.stats.roles.special_roles);
+                    updateBotRoles(data.stats.roles.bot_roles);
+                    updateTopMembers(data.stats.top_members);
+                    updateVoiceActivity(data.stats.voice_activity);
+                    
+                    // Update counts
+                    document.getElementById('adminCount').textContent = data.stats.roles.statistics.admin_count;
+                    document.getElementById('topWeekCount').textContent = data.stats.roles.statistics.top_week_count;
+                    document.getElementById('specialCount').textContent = data.stats.roles.statistics.special_count;
+                    document.getElementById('botRolesCount').textContent = data.stats.roles.statistics.bot_count;
+                    
+                    document.getElementById('lastUpdated').textContent = 
+                        `Cập nhật lần cuối: ${data.server_time}`;
+                })
+                .catch(error => {
+                    console.error('Error loading server data:', error);
+                    showError('Không thể tải dữ liệu server: ' + error.message);
+                });
+        }
+        
+        function updateServerHeader(serverData) {
+            const header = document.getElementById('serverHeader');
+            
+            header.innerHTML = `
+                <div class="server-name">${escapeHtml(serverData.name)}</div>
+                <div class="server-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-id-card"></i>
+                        <span>ID: ${serverData.id}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-user-crown"></i>
+                        <span>Owner: ${escapeHtml(serverData.owner)}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>Tạo: ${serverData.created_at}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateStats(stats) {
+            // Basic stats
+            document.getElementById('totalMembers').textContent = stats.members.total;
+            document.getElementById('onlineMembers').textContent = stats.members.online;
+            document.getElementById('textChannels').textContent = stats.channels.text;
+            document.getElementById('voiceChannels').textContent = stats.channels.voice;
+            document.getElementById('totalRoles').textContent = stats.roles.total;
+            document.getElementById('boostCount').textContent = stats.server.boost_count || 0;
+            
+            // Detailed member stats
+            document.getElementById('humanCount').textContent = stats.members.humans;
+            document.getElementById('botCount').textContent = stats.members.bots;
+            document.getElementById('onlineCount').textContent = stats.members.online;
+            document.getElementById('idleCount').textContent = stats.members.idle;
+            document.getElementById('dndCount').textContent = stats.members.dnd;
+            document.getElementById('offlineCount').textContent = stats.members.offline;
+            
+            // Role statistics
+            document.getElementById('adminRoleCount').textContent = stats.roles.statistics.admin_count;
+            document.getElementById('topWeekRoleCount').textContent = stats.roles.statistics.top_week_count;
+            document.getElementById('specialRoleCount').textContent = stats.roles.statistics.special_count;
+            document.getElementById('botRoleCount').textContent = stats.roles.statistics.bot_count;
+            document.getElementById('normalRoleCount').textContent = stats.roles.statistics.normal_count;
+            
+            // Count level roles
+            const levelRoleCount = stats.roles.normal_roles.filter(role => 
+                role.name.toLowerCase().includes('level')
+            ).length;
+            document.getElementById('levelRoleCount').textContent = levelRoleCount;
+        }
+        
+        function updateTopMembers(members) {
+            const container = document.getElementById('topMembers');
+            
+            if (!members || members.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">Không có dữ liệu thành viên</p>';
+                return;
+            }
+            
+            let html = '';
+            members.forEach((member, index) => {
+                const statusClass = `status-${member.status}`;
+                
+                html += `
+                    <div class="member-item">
+                        <img src="${member.avatar}" alt="Avatar" class="member-avatar">
+                        <div class="member-info">
+                            <div class="member-name">
+                                ${escapeHtml(member.name)}
+                                <span class="status-indicator ${statusClass}"></span>
+                            </div>
+                            <div class="member-role" style="--role-color: ${member.role_color};">
+                                ${escapeHtml(member.top_role)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function updateAdminRoles(roles) {
+            const container = document.getElementById('adminRoles');
+            
+            if (!roles || roles.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">Không có admin roles</p>';
+                return;
+            }
+            
+            let html = '';
+            roles.forEach(role => {
+                // Generate member avatars
+                const membersHtml = role.members && role.members.length > 0 ? `
+                    <div class="role-members">
+                        <div class="members-label">Thành viên (${role.member_count})</div>
+                        <div class="members-grid">
+                            ${role.members.slice(0, 10).map(member => `
+                                <div class="member-avatar">
+                                    <img src="${member.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" 
+                                         alt="${escapeHtml(member.name || 'Unknown')}" />
+                                    <div class="status-indicator status-${member.status || 'offline'}"></div>
+                                    <div class="member-tooltip">${escapeHtml(member.name || 'Unknown')}</div>
+                                </div>
+                            `).join('')}
+                            ${role.member_count > 10 ? `<div style="color: #6c757d; font-size: 0.8rem; align-self: center;">+${role.member_count - 10} khác</div>` : ''}
+                        </div>
+                    </div>
+                ` : '';
+                
+                html += `
+                    <div class="role-item" style="--role-color: ${role.color};">
+                        <div class="role-header">
+                            <div class="role-info">
+                                <h4>${escapeHtml(role.name)}</h4>
+                                <div class="role-details">
+                                    ${role.permissions.administrator ? 'Administrator • ' : ''}Position: ${role.position}
+                                    ${role.created_at ? ` • Tạo: ${new Date(role.created_at).toLocaleDateString('vi-VN')}` : ''}
+                                </div>
+                            </div>
+                            <div class="role-count">${role.member_count}</div>
+                        </div>
+                        ${membersHtml}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function updateTopWeekRoles(roles) {
+            const container = document.getElementById('topWeekRoles');
+            
+            if (!roles || roles.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">Không có top week roles</p>';
+                return;
+            }
+            
+            let html = '';
+            roles.forEach(role => {
+                // Generate member avatars
+                const membersHtml = role.members && role.members.length > 0 ? `
+                    <div class="role-members">
+                        <div class="members-label">Thành viên (${role.member_count})</div>
+                        <div class="members-grid">
+                            ${role.members.slice(0, 8).map(member => `
+                                <div class="member-avatar">
+                                    <img src="${member.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" 
+                                         alt="${escapeHtml(member.name || 'Unknown')}" />
+                                    <div class="status-indicator status-${member.status || 'offline'}"></div>
+                                    <div class="member-tooltip">${escapeHtml(member.name || 'Unknown')}</div>
+                                </div>
+                            `).join('')}
+                            ${role.member_count > 8 ? `<div style="color: #6c757d; font-size: 0.8rem; align-self: center;">+${role.member_count - 8} khác</div>` : ''}
+                        </div>
+                    </div>
+                ` : '';
+                
+                html += `
+                    <div class="role-item" style="--role-color: ${role.color};">
+                        <div class="role-header">
+                            <div class="role-info">
+                                <h4>${escapeHtml(role.name)}</h4>
+                                <div class="role-details">
+                                    Position: ${role.position}
+                                    ${role.created_at ? ` • Tạo: ${new Date(role.created_at).toLocaleDateString('vi-VN')}` : ''}
+                                </div>
+                            </div>
+                            <div class="role-count">${role.member_count}</div>
+                        </div>
+                        ${membersHtml}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function updateSpecialRoles(roles) {
+            const container = document.getElementById('specialRoles');
+            
+            if (!roles || roles.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">Không có special roles</p>';
+                return;
+            }
+            
+            let html = '';
+            roles.forEach(role => {
+                // Generate member avatars
+                const membersHtml = role.members && role.members.length > 0 ? `
+                    <div class="role-members">
+                        <div class="members-label">Thành viên (${role.member_count})</div>
+                        <div class="members-grid">
+                            ${role.members.slice(0, 12).map(member => `
+                                <div class="member-avatar">
+                                    <img src="${member.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" 
+                                         alt="${escapeHtml(member.name || 'Unknown')}" />
+                                    <div class="status-indicator status-${member.status || 'offline'}"></div>
+                                    <div class="member-tooltip">${escapeHtml(member.name || 'Unknown')}</div>
+                                </div>
+                            `).join('')}
+                            ${role.member_count > 12 ? `<div style="color: #6c757d; font-size: 0.8rem; align-self: center;">+${role.member_count - 12} khác</div>` : ''}
+                        </div>
+                    </div>
+                ` : '';
+                
+                html += `
+                    <div class="role-item" style="--role-color: ${role.color};">
+                        <div class="role-header">
+                            <div class="role-info">
+                                <h4>${escapeHtml(role.name)}</h4>
+                                <div class="role-details">
+                                    Position: ${role.position}
+                                    ${role.created_at ? ` • Tạo: ${new Date(role.created_at).toLocaleDateString('vi-VN')}` : ''}
+                                </div>
+                            </div>
+                            <div class="role-count">${role.member_count}</div>
+                        </div>
+                        ${membersHtml}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function updateBotRoles(roles) {
+            const container = document.getElementById('botRoles');
+            
+            if (!roles || roles.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">Không có bot roles</p>';
+                return;
+            }
+            
+            let html = '';
+            roles.forEach(role => {
+                const hasAdminPerms = role.permissions && role.permissions.administrator;
+                
+                // Generate member avatars (for bots)
+                const membersHtml = role.members && role.members.length > 0 ? `
+                    <div class="role-members">
+                        <div class="members-label">Bot (${role.member_count})</div>
+                        <div class="members-grid">
+                            ${role.members.slice(0, 6).map(member => `
+                                <div class="member-avatar">
+                                    <img src="${member.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" 
+                                         alt="${escapeHtml(member.name || 'Unknown Bot')}" />
+                                    <div class="status-indicator status-${member.status || 'online'}"></div>
+                                    <div class="member-tooltip">${escapeHtml(member.name || 'Unknown Bot')}</div>
+                                </div>
+                            `).join('')}
+                            ${role.member_count > 6 ? `<div style="color: #6c757d; font-size: 0.8rem; align-self: center;">+${role.member_count - 6} khác</div>` : ''}
+                        </div>
+                    </div>
+                ` : '';
+                
+                html += `
+                    <div class="role-item" style="--role-color: ${role.color};">
+                        <div class="role-header">
+                            <div class="role-info">
+                                <h4>${escapeHtml(role.name)}</h4>
+                                <div class="role-details">
+                                    ${hasAdminPerms ? 'Administrator • ' : ''}Position: ${role.position}
+                                    ${role.created_at ? ` • Tạo: ${new Date(role.created_at).toLocaleDateString('vi-VN')}` : ''}
+                                </div>
+                            </div>
+                            <div class="role-count">${role.member_count}</div>
+                        </div>
+                        ${membersHtml}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function updateVoiceActivity(voiceChannels) {
+            const container = document.getElementById('voiceActivity');
+            
+            if (!voiceChannels || voiceChannels.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">Không có hoạt động voice nào</p>';
+                return;
+            }
+            
+            let html = '';
+            voiceChannels.forEach(channel => {
+                html += `
+                    <div class="voice-channel">
+                        <div class="voice-channel-name">
+                            <i class="fas fa-volume-up"></i>
+                            ${escapeHtml(channel.name)} (${channel.member_count} người)
+                        </div>
+                        <div class="voice-members">
+                            ${channel.members.map(member => 
+                                `<span class="voice-member">${escapeHtml(member.name || member)}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function showError(message) {
+            const containers = ['serverHeader', 'adminRoles', 'topWeekRoles', 'specialRoles', 'botRoles', 'topMembers', 'voiceActivity'];
+            containers.forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>${message}</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function refreshData() {
+            loadServerData();
+            
+            // Show refresh animation
+            const btn = event.target.closest('.refresh-btn');
+            const icon = btn.querySelector('i');
+            icon.classList.add('fa-spin');
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

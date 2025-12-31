@@ -1,9 +1,10 @@
-# StudyLion Leaderboard Bot
+# StudyLion Leaderboard Bot + Web Dashboard
 
-Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt, lấy dữ liệu từ API thật.
+Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt + Web Dashboard thống kê server, lấy dữ liệu từ API thật.
 
 ## 🎯 Tính năng
 
+### Discord Bot
 - **3 loại bảng xếp hạng**: Ngày, Tuần, Tháng
 - **GUI đẹp mắt**: Sử dụng GUI system của LionBot gốc
 - **Dữ liệu thật**: Lấy từ API với avatar và thời gian thực
@@ -14,6 +15,14 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt,
   - 📅 **Ngày**: Mỗi ngày lúc 2h58 sáng
   - 📅 **Tuần**: Mỗi ngày lúc 20h và 2h55 sáng
   - 📅 **Tháng**: Ngày 1 và 15 mỗi tháng lúc 2h50 sáng
+
+### 🌐 Web Dashboard (MỚI!)
+- **📊 Server Dashboard**: Thống kê thật từ Discord server (thành viên, roles, channels, voice activity)
+- **🏆 Leaderboard Demo**: Bảng xếp hạng demo cho minh họa
+- **📈 Advanced Analytics**: Biểu đồ, phân tích xu hướng
+- **🔄 Auto refresh**: Tự động cập nhật mỗi 30-60 giây
+- **📱 Responsive**: Tương thích mobile và desktop
+- **🎨 UI đẹp**: Giao diện hiện đại với gradient và animations
 
 ## 📋 Lệnh Discord
 
@@ -35,20 +44,35 @@ Bot sẽ tự động gửi bảng xếp hạng theo lịch:
 
 ## 🚀 Cách chạy
 
-### Phương pháp 1: Script Python (Khuyến nghị)
+### Phương pháp 1: Full System (Bot + GUI + Web) - Khuyến nghị
+```bash
+python3 start_with_web.py
+```
+**Bao gồm:**
+- Discord Bot với GUI
+- Web Dashboard tại http://localhost:5001
+- Tất cả tính năng
+
+### Phương pháp 2: Chỉ Bot + GUI
 ```bash
 python3 start.py
 ```
 
-### Phương pháp 2: Script Bash
+### Phương pháp 3: Chỉ Web Dashboard (Dữ liệu Discord)
+```bash
+python3 run_web_only.py
+```
+**Truy cập:** http://localhost:5001
+**Dữ liệu:** Từ Discord API (thành viên thật của server)
+**Tính năng:**
+- Server Dashboard: Thống kê thành viên, roles, channels
+- Leaderboard Demo: /leaderboard
+- Advanced Analytics: /advanced
+
+### Phương pháp 4: Script Bash (Bot only)
 ```bash
 chmod +x start.sh
 ./start.sh
-```
-
-### Phương pháp 3: Chạy thủ công
-```bash
-python3 run_leaderboard_bot.py
 ```
 
 ## ⚙️ Cấu hình
@@ -91,10 +115,21 @@ API_BASE_URL = "http://192.168.128.173:3001/api/leaderboard/top-learners"
 
 ```
 StudyLion/
-├── start.py                    # Script khởi động Python
+├── start_with_web.py           # Script khởi động Full System (Bot + Web)
+├── start.py                    # Script khởi động Bot + GUI
 ├── start.sh                    # Script khởi động Bash  
 ├── run_leaderboard_bot.py      # Script chạy thủ công
 ├── leaderboard_only_bot.py     # Bot chính
+├── web/                        # 🌐 Web Dashboard
+│   ├── app.py                 # Flask web server
+│   ├── start_web.py           # Script khởi động web riêng
+│   ├── requirements.txt       # Dependencies cho web
+│   ├── templates/
+│   │   ├── dashboard.html     # Trang dashboard chính
+│   │   └── advanced.html      # Trang analytics nâng cao
+│   ├── static/
+│   │   └── style.css         # CSS tùy chỉnh
+│   └── README.md             # Hướng dẫn web dashboard
 ├── config/
 │   ├── secrets.conf           # Token bot
 │   ├── bot.conf              # Cấu hình bot
