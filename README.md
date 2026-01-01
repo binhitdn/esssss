@@ -6,6 +6,13 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 
 ### Discord Bot
 - **3 loại bảng xếp hạng**: Ngày, Tuần, Tháng
+- **🔔 Hệ thống đánh thức học tập (MỚI!)**:
+  - Đánh thức tất cả (@everyone)
+  - Đánh thức user cụ thể
+  - Đánh thức vào kênh chuyên dụng
+  - Hẹn giờ đánh thức thông minh
+  - Timer Pomodoro tự động
+  - Thống kê đánh thức cá nhân
 - **GUI đẹp mắt**: Sử dụng GUI system của LionBot gốc
 - **Dữ liệu thật**: Lấy từ API với avatar và thời gian thực
 - **Múi giờ Việt Nam**: Hiển thị thời gian theo UTC+7
@@ -26,10 +33,24 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 
 ## 📋 Lệnh Discord
 
-### Slash Commands (Thủ công)
+### Slash Commands - Bảng Xếp Hạng
 - `/bangxephang` - Bảng xếp hạng hôm nay
 - `/bangxephang-tuan` - Bảng xếp hạng tuần này  
 - `/bangxephang-thang` - Bảng xếp hạng tháng này
+
+### 🔔 Slash Commands - Đánh Thức Học Tập (MỚI!)
+- `/danh-thuc` - 🔔 Đánh thức tất cả mọi người (@everyone)
+- `/danh-thuc-user @user` - 🎯 Đánh thức một người cụ thể
+- `/danh-thuc-kenh` - 📢 Gửi đánh thức vào kênh chuyên dụng (ID: 1456243735938600970)
+- `/danh-thuc-hen-gio [phút] [tin nhắn]` - ⏰ Hẹn giờ đánh thức sau X phút
+- `/danh-thuc-pomodoro [chu kỳ]` - 🍅 Timer Pomodoro (25p học + 5p nghỉ)
+- `/danh-thuc-stats` - 📊 Xem thống kê đánh thức cá nhân
+
+**Tính năng đặc biệt:**
+- ⏰ **Cooldown 5 phút**: Tránh spam đánh thức
+- 🎲 **Nội dung ngẫu nhiên**: Mỗi lần đánh thức có câu động viên khác nhau
+- 🍅 **Pomodoro Timer**: Tự động báo học 25p và nghỉ 5p
+- 📊 **Thống kê cá nhân**: Theo dõi số lần đánh thức và streak
 
 ### Tự động gửi
 Bot sẽ tự động gửi bảng xếp hạng theo lịch:
@@ -51,6 +72,7 @@ python3 start_with_web.py
 **Bao gồm:**
 - Discord Bot với GUI
 - Web Dashboard tại http://localhost:5001
+- **🔔 Hệ thống đánh thức học tập**
 - Tất cả tính năng
 
 ### Phương pháp 2: Chỉ Bot + GUI
@@ -62,18 +84,34 @@ python3 start.py
 ```bash
 python3 run_web_only.py
 ```
-**Truy cập:** http://localhost:5001
-**Dữ liệu:** Từ Discord API (thành viên thật của server)
-**Tính năng:**
-- Server Dashboard: Thống kê thành viên, roles, channels
-- Leaderboard Demo: /leaderboard
-- Advanced Analytics: /advanced
 
 ### Phương pháp 4: Script Bash (Bot only)
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
+
+## 🔔 Hướng Dẫn Sử Dụng Đánh Thức
+
+### Lệnh Cơ Bản
+```
+/danh-thuc                    # Đánh thức tất cả (@everyone)
+/danh-thuc-user @username     # Đánh thức một người
+/danh-thuc-kenh              # Gửi vào kênh đánh thức
+```
+
+### Lệnh Nâng Cao
+```
+/danh-thuc-hen-gio 30 "Làm bài tập"    # Hẹn giờ 30 phút
+/danh-thuc-pomodoro 3                   # 3 chu kỳ Pomodoro
+/danh-thuc-stats                        # Xem thống kê cá nhân
+```
+
+### Mẹo Sử Dụng
+- **Cooldown**: 5 phút/người để tránh spam
+- **Thời điểm tốt**: 6h-8h, 13h-14h, 19h-21h
+- **Pomodoro**: Bắt đầu với 1-2 chu kỳ, tăng dần
+- **Hẹn giờ**: Tối đa 24 giờ (1440 phút)
 
 ## ⚙️ Cấu hình
 

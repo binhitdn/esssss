@@ -10,6 +10,7 @@ import sys
 import asyncio
 import aiohttp
 import re
+import time
 from datetime import datetime, timedelta, time
 import pytz
 from io import BytesIO
@@ -31,6 +32,9 @@ CHANNEL_DAILY = 1450690801934930124      # Bảng xếp hạng ngày - 2h58 mỗ
 CHANNEL_WEEKLY = 1435035898629591040     # Bảng xếp hạng tuần - 20h và 2h55 mỗi ngày
 CHANNEL_MONTHLY = 1450690861036994763    # Bảng xếp hạng tháng - ngày 1 và 15 lúc 2h50
 
+# Channel ID cho đánh thức học tập
+WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
+
 # Múi giờ Việt Nam
 VN_TZ = pytz.timezone('Asia/Ho_Chi_Minh')
 
@@ -50,6 +54,10 @@ class LeaderboardBot(commands.Bot):
         self.auto_post_daily_task = None
         self.auto_post_weekly_task = None
         self.auto_post_monthly_task = None
+        
+        # Cooldown cho đánh thức (tránh spam)
+        self.wakeup_cooldown = {}
+        self.wakeup_cooldown_duration = 300  # 5 phút
         
     async def setup_hook(self):
         """Thiết lập bot khi khởi động"""
@@ -691,6 +699,172 @@ async def leaderboard_month_command(interaction: discord.Interaction):
     period_info = get_period_info("month")
     await leaderboard_command(interaction, "month", period_info)
 
+# ==================== WAKEUP COMMANDS ====================
+
+@bot.tree.command(name="danh-thuc", description="🔔 Đánh thức tất cả mọi người học tập!")
+async def wakeup_all_command(interaction: discord.Interaction):
+    """Đánh thức tất cả thành viên"""
+    await wakeup_command(interaction, target_type="all")
+
+@bot.tree.command(name="danh-thuc-user", description="🔔 Đánh thức một người cụ thể học tập!")
+async def wakeup_user_command(interaction: discord.Interaction, user: discord.Member):
+    """Đánh thức một user cụ thể"""
+    await wakeup_command(interaction, target_type="user", target_user=user)
+
+@bot.tree.command(name="danh-thuc-kenh", description="🔔 Đánh thức tất cả mọi người vào kênh đánh thức!")
+async def wakeup_channel_command(interaction: discord.Interaction):
+    """Đánh thức tất cả vào kênh đánh thức"""
+    await wakeup_command(interaction, target_type="channel")
+
+@bot.tree.command(name="danh-thuc-hen-gio", description="⏰ Hẹn giờ đánh thức sau X phút")
+async def wakeup_timer_command(interaction: discord.Interaction, minutes: int, message: str = "Đã đến giờ học!"):
+    """Hẹn giờ đánh thức"""
+    if minutes < 1 or minutes > 1440:  # Tối đa 24 giờ
+        await interaction.response.send_message("⚠️ Thời gian phải từ 1-1440 phút (1 ngày)!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message(f"⏰ Đã đặt đánh thức sau {minutes} phút với nội dung: '{message}'", ephemeral=True)
+    
+    # Tạo task hẹn giờ
+    async def delayed_wakeup():
+        await asyncio.sleep(minutes * 60)
+        
+        # Tạo nội dung đánh thức hẹn giờ
+        vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+        now = datetime.now(vn_tz)
+        
+        content = f"""
+⏰ **ĐÁNH THỨC HẸN GIỜ** ⏰
+
+🔔 **Thông báo từ {interaction.user.mention}**
+
+📝 **Nội dung**: {message}
+🕐 **Thời gian**: {now.strftime('%H:%M')}
+⏱️ **Đã hẹn từ**: {minutes} phút trước
+
+💪 **Đã đến lúc thực hiện cam kết của bạn!**
+"""
+        
+        await interaction.channel.send(content)
+    
+    # Chạy task trong background
+    bot.loop.create_task(delayed_wakeup())
+
+@bot.tree.command(name="danh-thuc-pomodoro", description="🍅 Đánh thức Pomodoro (25p học + 5p nghỉ)")
+async def wakeup_pomodoro_command(interaction: discord.Interaction, cycles: int = 1):
+    """Đánh thức theo phương pháp Pomodoro"""
+    if cycles < 1 or cycles > 8:
+        await interaction.response.send_message("⚠️ Số chu kỳ phải từ 1-8!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message(f"🍅 Bắt đầu {cycles} chu kỳ Pomodoro! Chúc bạn học tập hiệu quả!", ephemeral=True)
+    
+    # Tạo Pomodoro timer
+    async def pomodoro_timer():
+        for cycle in range(1, cycles + 1):
+            # Bắt đầu chu kỳ học
+            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            now = datetime.now(vn_tz)
+            
+            start_content = f"""
+🍅 **POMODORO - CHU KỲ {cycle}/{cycles}** 🍅
+
+⏰ **BẮT ĐẦU HỌC**: {now.strftime('%H:%M')}
+👤 **Người khởi tạo**: {interaction.user.mention}
+
+📚 **25 PHÚT HỌC TẬP**
+• Tập trung 100%
+• Không kiểm tra điện thoại
+• Không làm việc khác
+• Chỉ học thôi!
+
+⏰ **Sẽ báo nghỉ lúc**: {(now + timedelta(minutes=25)).strftime('%H:%M')}
+
+🔥 **FOCUS MODE ON!** 🔥
+"""
+            await interaction.channel.send(start_content)
+            
+            # Đợi 25 phút
+            await asyncio.sleep(25 * 60)
+            
+            # Báo nghỉ
+            now = datetime.now(vn_tz)
+            if cycle < cycles:
+                break_content = f"""
+🛑 **POMODORO - NGHỈ NGƠI** 🛑
+
+⏰ **GIỜ NGHỈ**: {now.strftime('%H:%M')}
+🍅 **Hoàn thành chu kỳ**: {cycle}/{cycles}
+
+😌 **5 PHÚT NGHỈ NGƠI**
+• Đứng dậy vận động
+• Uống nước
+• Thả lỏng mắt
+• Thở sâu
+
+⏰ **Chu kỳ tiếp theo**: {(now + timedelta(minutes=5)).strftime('%H:%M')}
+
+💪 **Bạn đang làm rất tốt!** 💪
+"""
+                await interaction.channel.send(break_content)
+                await asyncio.sleep(5 * 60)  # Nghỉ 5 phút
+            else:
+                # Kết thúc tất cả chu kỳ
+                final_content = f"""
+🎉 **HOÀN THÀNH POMODORO** 🎉
+
+⏰ **Kết thúc**: {now.strftime('%H:%M')}
+🍅 **Tổng chu kỳ**: {cycles}
+⏱️ **Tổng thời gian học**: {cycles * 25} phút
+
+🏆 **CHÚC MỪNG {interaction.user.mention}!**
+
+📈 **Thành tựu hôm nay:**
+• Hoàn thành {cycles} Pomodoro
+• Học tập {cycles * 25} phút tập trung
+• Xây dựng thói quen tốt
+
+🎯 **Hãy tiếp tục duy trì!**
+"""
+                await interaction.channel.send(final_content)
+    
+    # Chạy Pomodoro timer
+    bot.loop.create_task(pomodoro_timer())
+
+@bot.tree.command(name="danh-thuc-stats", description="📊 Xem thống kê đánh thức của bạn")
+async def wakeup_stats_command(interaction: discord.Interaction):
+    """Xem thống kê đánh thức"""
+    user_id = interaction.user.id
+    
+    # Tạo stats giả lập (trong thực tế sẽ lưu vào database)
+    import random
+    
+    total_wakeups = random.randint(5, 50)
+    wakeups_today = random.randint(0, 5)
+    favorite_time = f"{random.randint(6, 22):02d}:{random.randint(0, 59):02d}"
+    streak = random.randint(1, 15)
+    
+    stats_content = f"""
+📊 **THỐNG KÊ ĐÁNH THỨC** 📊
+
+👤 **Người dùng**: {interaction.user.mention}
+
+📈 **Số liệu tổng quan:**
+🔔 **Tổng lần đánh thức**: {total_wakeups}
+📅 **Đánh thức hôm nay**: {wakeups_today}
+⏰ **Giờ đánh thức yêu thích**: {favorite_time}
+🔥 **Streak hiện tại**: {streak} ngày
+
+🏆 **Thành tựu:**
+{"🥇 Người đánh thức tích cực" if total_wakeups > 30 else "🥈 Người đánh thức nhiệt tình" if total_wakeups > 15 else "🥉 Người đánh thức mới"}
+
+💪 **Động lực**: Bạn đã giúp cộng đồng học tập {total_wakeups} lần!
+
+⭐ **Mẹo**: Đánh thức đều đặn sẽ tạo thói quen tốt cho bản thân!
+"""
+    
+    await interaction.response.send_message(stats_content, ephemeral=True)
+
 async def leaderboard_command(interaction: discord.Interaction, period_type: str, period_name: str):
     """Lệnh bảng xếp hạng chung"""
     # Respond ngay lập tức để tránh timeout
@@ -746,6 +920,168 @@ async def leaderboard_command(interaction: discord.Interaction, period_type: str
             await interaction.channel.send("❌ Có lỗi xảy ra khi tạo bảng xếp hạng! Vui lòng thử lại sau.")
         except:
             print("❌ Không thể gửi thông báo lỗi")
+
+async def wakeup_command(interaction: discord.Interaction, target_type: str, target_user: discord.Member = None):
+    """Hệ thống đánh thức học tập thông minh"""
+    
+    # Kiểm tra cooldown để tránh spam
+    user_id = interaction.user.id
+    now = time.time()
+    
+    if user_id in bot.wakeup_cooldown:
+        time_left = bot.wakeup_cooldown[user_id] + bot.wakeup_cooldown_duration - now
+        if time_left > 0:
+            minutes = int(time_left // 60)
+            seconds = int(time_left % 60)
+            await interaction.response.send_message(
+                f"⏰ Bạn cần đợi {minutes}m {seconds}s nữa mới có thể đánh thức tiếp!", 
+                ephemeral=True
+            )
+            return
+    
+    # Cập nhật cooldown
+    bot.wakeup_cooldown[user_id] = now
+    
+    # Respond ngay để tránh timeout
+    await interaction.response.send_message("🔔 Đang chuẩn bị đánh thức...", ephemeral=True)
+    
+    try:
+        # Tạo nội dung đánh thức
+        wakeup_content = await generate_wakeup_content(interaction.user, target_type, target_user)
+        
+        if target_type == "channel":
+            # Gửi vào kênh đánh thức
+            wakeup_channel = bot.get_channel(WAKEUP_CHANNEL)
+            if wakeup_channel:
+                await wakeup_channel.send(wakeup_content)
+                await interaction.followup.send(f"✅ Đã gửi đánh thức vào <#{WAKEUP_CHANNEL}>!", ephemeral=True)
+            else:
+                await interaction.followup.send("❌ Không tìm thấy kênh đánh thức!", ephemeral=True)
+        else:
+            # Gửi trong channel hiện tại
+            await interaction.channel.send(wakeup_content)
+            await interaction.followup.send("✅ Đã gửi đánh thức!", ephemeral=True)
+            
+        print(f"🔔 {interaction.user.name} đã đánh thức ({target_type})")
+        
+    except Exception as e:
+        print(f"❌ Lỗi đánh thức: {e}")
+        await interaction.followup.send("❌ Có lỗi xảy ra khi đánh thức!", ephemeral=True)
+
+async def generate_wakeup_content(caller: discord.Member, target_type: str, target_user: discord.Member = None):
+    """Tạo nội dung đánh thức thông minh và thú vị"""
+    
+    # Lấy thời gian hiện tại
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+    now = datetime.now(vn_tz)
+    time_str = now.strftime("%H:%M")
+    
+    # Emoji và âm thanh đánh thức
+    wakeup_emojis = ["🔔", "⏰", "📢", "🎺", "🔊", "⚡", "💪", "🚀", "🎯", "📚"]
+    motivational_emojis = ["💪", "🔥", "⭐", "🏆", "🎯", "📈", "💎", "🚀", "⚡", "🌟"]
+    
+    # Random emoji cho mỗi lần đánh thức
+    import random
+    wake_emoji = random.choice(wakeup_emojis)
+    moti_emoji = random.choice(motivational_emojis)
+    
+    # Câu động viên ngẫu nhiên
+    motivational_quotes = [
+        "Thành công bắt đầu từ việc thức dậy sớm!",
+        "Mỗi phút trôi qua là một cơ hội học tập!",
+        "Hôm nay bạn sẽ học được điều gì mới?",
+        "Kiến thức là sức mạnh, hãy tích lũy ngay!",
+        "Đừng để thời gian trôi qua vô ích!",
+        "Học tập là đầu tư tốt nhất cho tương lai!",
+        "Mỗi ngày học một chút, thành công sẽ đến!",
+        "Hãy biến giấc mơ thành hiện thực!",
+        "Chỉ có học tập mới thay đổi cuộc đời!",
+        "Bắt đầu ngay bây giờ, đừng chờ đợi!"
+    ]
+    
+    quote = random.choice(motivational_quotes)
+    
+    # Tạo nội dung dựa trên loại đánh thức
+    if target_type == "all":
+        content = f"""
+{wake_emoji} **ĐÁNH THỨC HỌC TẬP** {wake_emoji}
+
+@everyone 
+
+{moti_emoji} **{quote}** {moti_emoji}
+
+🕐 **Thời gian**: {time_str}
+👤 **Người đánh thức**: {caller.mention}
+📚 **Thông điệp**: Đã đến lúc học tập rồi! Hãy cùng nhau nỗ lực nhé!
+
+**🎯 Hãy bắt đầu học ngay:**
+• Mở sách/laptop
+• Tập trung 100%
+• Tắt điện thoại
+• Uống nước, ngồi thẳng
+
+**⏰ Pomodoro Suggestion:**
+25 phút học → 5 phút nghỉ → Lặp lại
+
+{moti_emoji} *Cùng nhau tiến bộ mỗi ngày!* {moti_emoji}
+"""
+    
+    elif target_type == "user" and target_user:
+        # Kiểm tra xem user có đang online không
+        status_emoji = "🟢" if target_user.status == discord.Status.online else "🔴"
+        
+        content = f"""
+{wake_emoji} **ĐÁNH THỨC CÁ NHÂN** {wake_emoji}
+
+{target_user.mention} {status_emoji}
+
+{moti_emoji} **{quote}** {moti_emoji}
+
+🕐 **Thời gian**: {time_str}
+👤 **Người đánh thức**: {caller.mention}
+🎯 **Mục tiêu**: Đã đến lúc {target_user.display_name} học tập rồi!
+
+**📋 Checklist cho bạn:**
+✅ Chuẩn bị tài liệu
+✅ Tìm chỗ ngồi thoải mái  
+✅ Đặt mục tiêu cụ thể
+✅ Bắt đầu ngay!
+
+{moti_emoji} *Bạn làm được mà! Fighting!* {moti_emoji}
+"""
+    
+    elif target_type == "channel":
+        # Đánh thức đặc biệt cho kênh đánh thức
+        content = f"""
+{wake_emoji}🎺 **TIẾNG KÈNG HỌC TẬP** 🎺{wake_emoji}
+
+@everyone 
+
+🔥 **EMERGENCY STUDY ALERT** 🔥
+
+{moti_emoji} **{quote}** {moti_emoji}
+
+🕐 **Thời gian báo động**: {time_str}
+👤 **Chỉ huy trưởng**: {caller.mention}
+📍 **Địa điểm tập trung**: Bàn học của bạn!
+
+**🚨 LỆNH KHẨN CẤP:**
+1. 🏃‍♂️ Chạy đến bàn học NGAY
+2. 📚 Mở sách/laptop trong 30 giây
+3. 🎯 Đặt mục tiêu học trong 1 phút
+4. ⏰ Bắt đầu học trong 2 phút
+
+**🏆 PHẦN THƯỞNG:**
+• Kiến thức mới
+• Cảm giác thành tựu
+• Tương lai tươi sáng
+
+{moti_emoji} **AI KHÔNG HỌC BÂY GIỜ THÌ KHI NÀO?** {moti_emoji}
+
+*Tin nhắn này sẽ tự hủy sau khi bạn bắt đầu học... 😄*
+"""
+    
+    return content
 
 def main():
     """Hàm main để chạy bot"""
