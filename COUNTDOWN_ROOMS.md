@@ -64,17 +64,35 @@ Tính năng tạo phòng voice đếm ngược đến ngày mục tiêu, giúp t
 
 ## 🎨 Định Dạng Hiển Thị
 
-### Format "full" (Mặc định)
-```
-Tên + Còn + Thời gian
-VD: "JLPT N2 Còn 125d22h23p"
-```
+Bot hỗ trợ 4 định dạng hiển thị khác nhau, user có thể chọn qua dropdown select:
 
-### Format "countdown"
+### 1. 📝 Tên + Còn xx ngày xx giờ xx phút (full_verbose)
 ```
-Chỉ thời gian
-VD: "125d22h23p"
+VD: "JLPT N2 Còn 125 ngày 22 giờ 30 phút"
 ```
+**Ưu điểm**: Dễ đọc, rõ ràng, thân thiện
+**Nhược điểm**: Tên dài, có thể bị cắt
+
+### 2. 📋 Tên + Còn xxdxxhxxp (full_compact)
+```
+VD: "JLPT N2 Còn 125d22h30p"
+```
+**Ưu điểm**: Gọn gàng hơn, vẫn có tên
+**Nhược điểm**: Cần hiểu ký hiệu d/h/p
+
+### 3. ⏰ xx ngày xx giờ xx phút (countdown_verbose)
+```
+VD: "125 ngày 22 giờ 30 phút"
+```
+**Ưu điểm**: Tập trung vào thời gian, dễ đọc
+**Nhược điểm**: Không biết mục tiêu gì
+
+### 4. ⏱️ xxdxxhxxp (countdown_compact)
+```
+VD: "125d22h30p"
+```
+**Ưu điểm**: Cực kỳ gọn gàng, tiết kiệm không gian
+**Nhược điểm**: Khó đọc, không có context
 
 ### Ý Nghĩa Ký Hiệu
 - **d**: ngày (days)
@@ -137,7 +155,7 @@ User dùng /tao-phong-hoc
 
 ### 2. Cập Nhật
 ```
-Mỗi 60 giây:
+Mỗi 300 giây (5 phút):
 → Tính thời gian còn lại
 → Tạo tên mới
 → Cập nhật tên channel
@@ -160,7 +178,7 @@ Khi hết thời gian:
 User: /tao-phong-hoc "JLPT N2" "7/12/2025" "full"
 Bot: ✅ Tạo phòng "JLPT N2 Còn 36d15h23p"
 
-[Mỗi ngày tên phòng tự động thay đổi]
+[Mỗi 5 phút tên phòng tự động thay đổi]
 2/11: "JLPT N2 Còn 35d15h23p"
 3/11: "JLPT N2 Còn 34d15h23p"
 ...
@@ -214,6 +232,21 @@ Ví dụ: 9/12/2025, 09/12/2025
 - Đảm bảo ngày trong tương lai
 - Xóa phòng cũ trước khi tạo mới
 - Kiểm tra ID danh mục trong code
+
+## 💡 Tối Ưu Hóa Hiệu Suất
+
+### Tại Sao 5 Phút?
+- **Giảm tải Discord API**: Tránh rate limit khi có nhiều phòng
+- **Tiết kiệm tài nguyên**: Giảm CPU và network usage
+- **Vẫn đủ chính xác**: 5 phút không ảnh hưởng đáng kể đến trải nghiệm
+- **Ổn định hơn**: Ít khả năng bị Discord chặn request
+
+### So Sánh Tần Suất
+| Tần suất | Ưu điểm | Nhược điểm |
+|----------|---------|------------|
+| 1 phút | Cập nhật nhanh | Tốn tài nguyên, risk rate limit |
+| **5 phút** | **Cân bằng tốt** | **Đủ nhanh, ổn định** |
+| 10 phút | Tiết kiệm tài nguyên | Cập nhật chậm |
 
 ## 💡 Mẹo Sử Dụng
 

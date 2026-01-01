@@ -15,10 +15,10 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
   - Thống kê đánh thức cá nhân
 - **📚 Hệ thống phòng học đếm ngược (MỚI!)**:
   - Tạo phòng voice đếm ngược đến ngày mục tiêu
+  - 4 định dạng hiển thị khác nhau với dropdown select
   - Tự động cập nhật tên phòng mỗi 5 phút
   - Creator có full quyền, người khác chỉ xem
   - Tự động xóa khi hết thời gian
-  - Hỗ trợ 2 định dạng hiển thị
 - **⚠️ Hệ thống cảnh báo tự động (MỚI!)**:
   - Tự động gửi cảnh báo lúc 6h sáng
   - Tag user cụ thể với thông tin học tập
@@ -63,7 +63,7 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 - `/danh-thuc-stats` - 📊 Xem thống kê đánh thức cá nhân
 
 ### 📚 Slash Commands - Phòng Học Đếm Ngược (MỚI!)
-- `/tao-phong-hoc [tên] [ngày] [định dạng]` - 🏗️ Tạo phòng đếm ngược đến ngày mục tiêu
+- `/tao-phong-hoc [tên] [ngày]` - 🏗️ Tạo phòng đếm ngược với dropdown chọn định dạng
 - `/xoa-phong-hoc` - 🗑️ Xóa phòng học đếm ngược của bạn
 - `/danh-sach-phong-hoc` - 📋 Xem tất cả phòng đếm ngược
 
@@ -144,11 +144,16 @@ chmod +x start.sh
 
 ### Lệnh Phòng Học Đếm Ngược
 ```
-/tao-phong-hoc "JLPT" "9/12/2025" "full"     # Tạo phòng "JLPT Còn 125d22h23p"
-/tao-phong-hoc "Thi cuối kỳ" "15/1/2026" "countdown"  # Tạo phòng "89d15h42p"
-/danh-sach-phong-hoc                          # Xem tất cả phòng
-/xoa-phong-hoc                               # Xóa phòng của bạn
+/tao-phong-hoc "JLPT" "9/12/2025"              # Tạo phòng với dropdown chọn format
+/danh-sach-phong-hoc                            # Xem tất cả phòng
+/xoa-phong-hoc                                  # Xóa phòng của bạn
 ```
+
+**Các định dạng hiển thị:**
+- **Tên + Còn xx ngày xx giờ xx phút**: `JLPT Còn 125 ngày 22 giờ 30 phút`
+- **Tên + Còn xxdxxhxxp**: `JLPT Còn 125d22h30p`
+- **xx ngày xx giờ xx phút**: `125 ngày 22 giờ 30 phút`
+- **xxdxxhxxp**: `125d22h30p`
 
 ### Lệnh Admin (Cảnh Báo)
 ```

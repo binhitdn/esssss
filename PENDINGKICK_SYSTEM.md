@@ -304,6 +304,13 @@ pendingkick_content = f"""
 """
 ```
 
+### Thay Đổi Tần Suất Cập Nhật Phòng Đếm Ngược
+```python
+# Trong countdown_update_loop() của leaderboard_only_bot.py
+await asyncio.sleep(300)  # Thay 300 thành số giây khác
+# VD: 600 = 10 phút, 180 = 3 phút, 60 = 1 phút
+```
+
 ### Thay Đổi Giới Hạn Hiển Thị
 ```python
 # Trong list_pendingkick_command()

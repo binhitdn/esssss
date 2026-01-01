@@ -1283,16 +1283,96 @@ async def create_study_room_command(
     interaction: discord.Interaction, 
     name: str, 
     date: str, 
-    format_type: str = "full"
+    format_type: str = "full_verbose"
 ):
     """Tạo phòng học đếm ngược
     
     Args:
         name: Tên phòng học (VD: JLPT, Thi cuối kỳ)
         date: Ngày mục tiêu (DD/MM/YYYY hoặc DD/MM/YYYY)
-        format_type: "full" (tên + đếm ngược) hoặc "countdown" (chỉ đếm ngược)
+        format_type: Định dạng hiển thị (sẽ có dropdown select)
     """
-    await create_countdown_room(interaction, name, date, format_type)
+    # Tạo dropdown select cho format
+    class FormatSelect(discord.ui.Select):
+        def __init__(self):
+            options = [
+                discord.SelectOption(
+                    label="Tên + Còn xx ngày xx giờ xx phút",
+                    value="full_verbose",
+                    description="VD: JLPT Còn 125 ngày 22 giờ 30 phút",
+                    emoji="📝"
+                ),
+                discord.SelectOption(
+                    label="Tên + Còn xxdxxhxxp",
+                    value="full_compact",
+                    description="VD: JLPT Còn 125d22h30p",
+                    emoji="📋"
+                ),
+                discord.SelectOption(
+                    label="xx ngày xx giờ xx phút",
+                    value="countdown_verbose",
+                    description="VD: 125 ngày 22 giờ 30 phút",
+                    emoji="⏰"
+                ),
+                discord.SelectOption(
+                    label="xxdxxhxxp",
+                    value="countdown_compact",
+                    description="VD: 125d22h30p",
+                    emoji="⏱️"
+                )
+            ]
+            super().__init__(placeholder="Chọn định dạng hiển thị tên phòng...", options=options)
+        
+        async def callback(self, interaction: discord.Interaction):
+            selected_format = self.values[0]
+            await create_countdown_room(interaction, name, date, selected_format)
+    
+    class FormatView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.add_item(FormatSelect())
+        
+        async def on_timeout(self):
+            # Disable all items when timeout
+            for item in self.children:
+                item.disabled = True
+    
+    # Hiển thị dropdown select
+    view = FormatView()
+    
+    embed = discord.Embed(
+        title="📚 Tạo Phòng Học Đếm Ngược",
+        description=f"**Tên phòng**: {name}\n**Ngày mục tiêu**: {date}\n\n**Chọn định dạng hiển thị:**",
+        color=0x3498db
+    )
+    
+    embed.add_field(
+        name="📝 Tên + Còn xx ngày xx giờ xx phút",
+        value=f"`{name} Còn 125 ngày 22 giờ 30 phút`",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📋 Tên + Còn xxdxxhxxp",
+        value=f"`{name} Còn 125d22h30p`",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="⏰ xx ngày xx giờ xx phút",
+        value="`125 ngày 22 giờ 30 phút`",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="⏱️ xxdxxhxxp",
+        value="`125d22h30p`",
+        inline=False
+    )
+    
+    embed.set_footer(text="Chọn định dạng trong dropdown bên dưới • Timeout: 60 giây")
+    
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 @bot.tree.command(name="xoa-phong-hoc", description="🗑️ Xóa phòng học đếm ngược của bạn")
 async def delete_study_room_command(interaction: discord.Interaction):
@@ -1722,16 +1802,29 @@ async def generate_wakeup_content(caller: discord.Member, target_type: str, targ
     return content
 
 def generate_countdown_name(base_name: str, time_left: timedelta, format_type: str) -> str:
-    """Tạo tên phòng đếm ngược"""
+    """Tạo tên phòng đếm ngược với nhiều định dạng"""
     days = time_left.days
     hours, remainder = divmod(time_left.seconds, 3600)
     minutes, _ = divmod(remainder, 60)
     
-    if format_type == "countdown":
-        # Chỉ hiển thị đếm ngược: "125d22h23p"
+    if format_type == "countdown_compact":
+        # Chỉ hiển thị đếm ngược compact: "125d22h30p"
         return f"{days}d{hours:02d}h{minutes:02d}p"
+    
+    elif format_type == "countdown_verbose":
+        # Chỉ hiển thị đếm ngược verbose: "125 ngày 22 giờ 30 phút"
+        return f"{days} ngày {hours} giờ {minutes} phút"
+    
+    elif format_type == "full_compact":
+        # Tên + đếm ngược compact: "JLPT Còn 125d22h30p"
+        return f"{base_name} Còn {days}d{hours:02d}h{minutes:02d}p"
+    
+    elif format_type == "full_verbose":
+        # Tên + đếm ngược verbose: "JLPT Còn 125 ngày 22 giờ 30 phút"
+        return f"{base_name} Còn {days} ngày {hours} giờ {minutes} phút"
+    
     else:
-        # Hiển thị tên + đếm ngược: "JLPT Còn 125d22h23p"
+        # Fallback về full_compact nếu format không hợp lệ
         return f"{base_name} Còn {days}d{hours:02d}h{minutes:02d}p"
 
 def parse_date_string(date_str: str) -> datetime:
@@ -1786,8 +1879,13 @@ async def create_countdown_room(interaction: discord.Interaction, name: str, dat
     """Tạo phòng học đếm ngược"""
     try:
         # Validate format_type
-        if format_type not in ["full", "countdown"]:
-            await interaction.response.send_message("❌ Format phải là 'full' hoặc 'countdown'!", ephemeral=True)
+        valid_formats = ["full_verbose", "full_compact", "countdown_verbose", "countdown_compact"]
+        if format_type not in valid_formats:
+            await interaction.response.send_message(
+                f"❌ Format không hợp lệ!\n"
+                f"**Hỗ trợ:** {', '.join(valid_formats)}", 
+                ephemeral=True
+            )
             return
         
         # Parse ngày
@@ -1861,6 +1959,13 @@ async def create_countdown_room(interaction: discord.Interaction, name: str, dat
         }
         
         # Tạo thông báo thành công
+        format_descriptions = {
+            "full_verbose": "Tên + Còn xx ngày xx giờ xx phút",
+            "full_compact": "Tên + Còn xxdxxhxxp", 
+            "countdown_verbose": "xx ngày xx giờ xx phút",
+            "countdown_compact": "xxdxxhxxp"
+        }
+        
         success_message = f"""
 ✅ **PHÒNG HỌC ĐÃ TẠO THÀNH CÔNG!**
 
@@ -1868,6 +1973,7 @@ async def create_countdown_room(interaction: discord.Interaction, name: str, dat
 🎯 **Mục tiêu**: {target_date.strftime('%d/%m/%Y %H:%M')}
 ⏰ **Thời gian còn lại**: {time_left.days} ngày {time_left.seconds//3600} giờ
 👤 **Chủ phòng**: {interaction.user.mention}
+🎨 **Định dạng**: {format_descriptions.get(format_type, format_type)}
 
 **🔧 Quyền của bạn:**
 • ✅ Kết nối vào phòng
@@ -1875,7 +1981,7 @@ async def create_countdown_room(interaction: discord.Interaction, name: str, dat
 • ✅ Gửi tin nhắn trong phòng
 
 **📋 Lưu ý:**
-• Tên phòng tự động cập nhật mỗi phút
+• Tên phòng tự động cập nhật mỗi 5 phút
 • Phòng tự động xóa khi hết thời gian
 • Mọi người có thể xem nhưng không kết nối được
 • Dùng `/xoa-phong-hoc` để xóa phòng
