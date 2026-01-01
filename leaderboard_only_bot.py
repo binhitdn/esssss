@@ -38,6 +38,14 @@ WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
 # Category ID cho phòng học đếm ngược
 STUDY_ROOMS_CATEGORY = 1436215086694924449  # Danh mục phòng học đếm ngược
 
+# Warning system
+WARNING_USER_ID = 1436409040036040886        # User ID cần tag warning
+WARNING_CHANNEL_ID = 1446655389860106361     # Channel gửi warning
+
+# PendingKick system
+PENDINGKICK_ROLE_ID = 1436802180429385768    # Role ID PendingKick
+PENDINGKICK_CHANNEL_ID = 1446655276962021497 # Channel gửi PendingKick
+
 # Múi giờ Việt Nam
 VN_TZ = pytz.timezone('Asia/Ho_Chi_Minh')
 
@@ -65,6 +73,12 @@ class LeaderboardBot(commands.Bot):
         # Lưu trữ thông tin phòng đếm ngược
         self.countdown_rooms = {}  # {channel_id: {'name': str, 'target_date': datetime, 'creator_id': int, 'format_type': str}}
         self.countdown_update_task = None
+        
+        # Lưu trữ tin nhắn warning để xóa sau
+        self.warning_messages = {}  # {message_id: {'delete_time': datetime, 'channel_id': int}}
+        
+        # Lưu trữ tin nhắn pendingkick để xóa sau
+        self.pendingkick_messages = {}  # {message_id: {'delete_time': datetime, 'channel_id': int}}
         
     async def setup_hook(self):
         """Thiết lập bot khi khởi động"""
@@ -118,6 +132,12 @@ class LeaderboardBot(commands.Bot):
                     
                     # Khởi động countdown update task
                     self.countdown_update_task = self.loop.create_task(self.countdown_update_loop())
+                    
+                    # Khởi động warning system task
+                    self.warning_task = self.loop.create_task(self.warning_system_loop())
+                    
+                    # Khởi động pendingkick system task
+                    self.pendingkick_task = self.loop.create_task(self.pendingkick_system_loop())
                     
                     print("✅ Đã khởi động tất cả scheduled tasks")
                 except Exception as e:
@@ -202,14 +222,310 @@ class LeaderboardBot(commands.Bot):
                             del self.countdown_rooms[channel_id]
                     
                     # Đợi 60 giây trước khi cập nhật tiếp
-                    await asyncio.sleep(60)
+                    await asyncio.sleep(300)  # 5 phút = 300 giây
                     
                 except Exception as e:
                     print(f"❌ [COUNTDOWN] Lỗi update loop: {e}")
-                    await asyncio.sleep(60)
+                    await asyncio.sleep(300)  # 5 phút nếu có lỗi
                     
         except Exception as e:
             print(f"❌ [FATAL] Countdown update task crashed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # ==================== WARNING SYSTEM ====================
+    
+    async def warning_system_loop(self):
+        """Hệ thống cảnh báo tự động"""
+        try:
+            await self.wait_until_ready()
+            print("✅ Warning system task đã sẵn sàng")
+            
+            while not self.is_closed():
+                try:
+                    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                    now = datetime.now(vn_tz)
+                    
+                    # Kiểm tra gửi warning lúc 6h sáng
+                    if now.hour == 6 and now.minute == 0:
+                        print("⚠️ [WARNING] Đang gửi cảnh báo 6h sáng...")
+                        await self.send_warning_message()
+                        
+                        # Đợi 2 phút để tránh gửi lại
+                        await asyncio.sleep(120)
+                    
+                    # Kiểm tra xóa tin nhắn warning lúc 2h51
+                    elif now.hour == 2 and now.minute == 51:
+                        print("🗑️ [WARNING] Đang xóa tin nhắn cảnh báo...")
+                        await self.delete_warning_messages()
+                        
+                        # Đợi 2 phút để tránh xử lý lại
+                        await asyncio.sleep(120)
+                    
+                    else:
+                        # Kiểm tra lại sau 30 giây
+                        await asyncio.sleep(30)
+                        
+                except Exception as e:
+                    print(f"❌ [WARNING] Lỗi warning system: {e}")
+                    await asyncio.sleep(60)
+                    
+        except Exception as e:
+            print(f"❌ [FATAL] Warning system crashed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def send_warning_message(self):
+        """Gửi tin nhắn cảnh báo lúc 6h sáng"""
+        try:
+            # Lấy channel
+            channel = self.get_channel(WARNING_CHANNEL_ID)
+            if not channel:
+                print(f"❌ Không tìm thấy channel warning {WARNING_CHANNEL_ID}")
+                return
+            
+            # Tính ngày mai
+            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            tomorrow = datetime.now(vn_tz) + timedelta(days=1)
+            tomorrow_str = tomorrow.strftime('%d/%m/%Y')
+            
+            # Tạo nội dung warning
+            warning_content = f"""
+⚠️ **CẢNH BÁO HỌC TẬP** ⚠️
+
+<@{WARNING_USER_ID}>
+
+Các bạn đã bị gắn **Warning** vì vậy hãy học đủ thời gian mục tiêu trước **3h sáng ngày {tomorrow_str}** trước khi bị chuyển sang **pendingKick**.
+
+📊 **Để biết thời gian mục tiêu của mình là bao nhiêu:**
+🔗 Truy cập: https://14study.io.vn
+
+⚠️ **Lưu ý:** Nếu bạn không cài đặt thì mặc định là **1 giờ**.
+
+🎯 **Hãy nỗ lực học tập để tránh bị kick khỏi server!**
+
+---
+*Tin nhắn này sẽ tự động xóa vào 2h51 sáng ngày mai.*
+"""
+            
+            # Gửi tin nhắn
+            message = await channel.send(warning_content)
+            
+            # Tính thời gian xóa (2h51 sáng ngày mai)
+            delete_time = tomorrow.replace(hour=2, minute=51, second=0, microsecond=0)
+            
+            # Lưu thông tin để xóa sau
+            self.warning_messages[message.id] = {
+                'delete_time': delete_time,
+                'channel_id': channel.id,
+                'sent_time': datetime.now(vn_tz)
+            }
+            
+            print(f"✅ [WARNING] Đã gửi cảnh báo (Message ID: {message.id})")
+            print(f"🗑️ [WARNING] Sẽ xóa lúc: {delete_time.strftime('%H:%M %d/%m/%Y')}")
+            
+        except Exception as e:
+            print(f"❌ [WARNING] Lỗi gửi cảnh báo: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def delete_warning_messages(self):
+        """Xóa tin nhắn cảnh báo lúc 2h51"""
+        try:
+            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            now = datetime.now(vn_tz)
+            
+            messages_to_delete = []
+            
+            for message_id, info in self.warning_messages.items():
+                # Kiểm tra xem có đến giờ xóa chưa
+                if now >= info['delete_time']:
+                    messages_to_delete.append(message_id)
+            
+            if not messages_to_delete:
+                print("📭 [WARNING] Không có tin nhắn nào cần xóa")
+                return
+            
+            deleted_count = 0
+            
+            for message_id in messages_to_delete:
+                try:
+                    info = self.warning_messages[message_id]
+                    channel = self.get_channel(info['channel_id'])
+                    
+                    if channel:
+                        message = await channel.fetch_message(message_id)
+                        await message.delete()
+                        deleted_count += 1
+                        print(f"✅ [WARNING] Đã xóa tin nhắn {message_id}")
+                    
+                    # Xóa khỏi danh sách theo dõi
+                    del self.warning_messages[message_id]
+                    
+                except discord.NotFound:
+                    print(f"⚠️ [WARNING] Tin nhắn {message_id} đã bị xóa trước đó")
+                    del self.warning_messages[message_id]
+                except Exception as e:
+                    print(f"❌ [WARNING] Lỗi xóa tin nhắn {message_id}: {e}")
+            
+            print(f"🗑️ [WARNING] Đã xóa {deleted_count} tin nhắn cảnh báo")
+            
+        except Exception as e:
+            print(f"❌ [WARNING] Lỗi xóa tin nhắn: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # ==================== PENDINGKICK SYSTEM ====================
+    
+    async def pendingkick_system_loop(self):
+        """Hệ thống PendingKick tự động"""
+        try:
+            await self.wait_until_ready()
+            print("✅ PendingKick system task đã sẵn sàng")
+            
+            while not self.is_closed():
+                try:
+                    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                    now = datetime.now(vn_tz)
+                    
+                    # Kiểm tra gửi pendingkick lúc 6h sáng
+                    if now.hour == 6 and now.minute == 0:
+                        print("🚨 [PENDINGKICK] Đang gửi thông báo PendingKick 6h sáng...")
+                        await self.send_pendingkick_message()
+                        
+                        # Đợi 2 phút để tránh gửi lại
+                        await asyncio.sleep(120)
+                    
+                    # Kiểm tra xóa tin nhắn pendingkick lúc 2h51
+                    elif now.hour == 2 and now.minute == 51:
+                        print("🗑️ [PENDINGKICK] Đang xóa tin nhắn PendingKick...")
+                        await self.delete_pendingkick_messages()
+                        
+                        # Đợi 2 phút để tránh xử lý lại
+                        await asyncio.sleep(120)
+                    
+                    else:
+                        # Kiểm tra lại sau 30 giây
+                        await asyncio.sleep(30)
+                        
+                except Exception as e:
+                    print(f"❌ [PENDINGKICK] Lỗi pendingkick system: {e}")
+                    await asyncio.sleep(60)
+                    
+        except Exception as e:
+            print(f"❌ [FATAL] PendingKick system crashed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def send_pendingkick_message(self):
+        """Gửi tin nhắn PendingKick lúc 6h sáng"""
+        try:
+            # Lấy channel
+            channel = self.get_channel(PENDINGKICK_CHANNEL_ID)
+            if not channel:
+                print(f"❌ Không tìm thấy channel PendingKick {PENDINGKICK_CHANNEL_ID}")
+                return
+            
+            # Lấy guild để tìm role
+            guild = channel.guild
+            role = guild.get_role(PENDINGKICK_ROLE_ID)
+            if not role:
+                print(f"❌ Không tìm thấy role PendingKick {PENDINGKICK_ROLE_ID}")
+                return
+            
+            # Lấy danh sách members có role PendingKick
+            pendingkick_members = [member for member in guild.members if role in member.roles]
+            
+            if not pendingkick_members:
+                print("📭 [PENDINGKICK] Không có thành viên nào có role PendingKick")
+                return
+            
+            # Tạo danh sách mentions
+            member_mentions = " ".join([member.mention for member in pendingkick_members])
+            
+            # Tạo nội dung PendingKick
+            pendingkick_content = f"""
+🚨 **THÔNG BÁO PENDINGKICK** 🚨
+
+{member_mentions}
+
+Bạn đã được chuyển sang **PendingKick** do không học đủ mục tiêu **2 ngày liên tiếp**.
+
+🔄 **Vui lòng nhấp vào nút "Xin quay lại" ở trên** nếu cậu muốn tiếp tục học với tụi mình hoặc tự rời khỏi nhóm.
+
+💭 **(Sẽ không có thông báo nào cho ai kể cả admin nên cậu cứ thoải mái ạ)**
+
+---
+*Tin nhắn này sẽ tự động xóa vào 2h51 sáng ngày mai.*
+"""
+            
+            # Gửi tin nhắn
+            message = await channel.send(pendingkick_content)
+            
+            # Tính thời gian xóa (2h51 sáng ngày mai)
+            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            tomorrow = datetime.now(vn_tz) + timedelta(days=1)
+            delete_time = tomorrow.replace(hour=2, minute=51, second=0, microsecond=0)
+            
+            # Lưu thông tin để xóa sau
+            self.pendingkick_messages[message.id] = {
+                'delete_time': delete_time,
+                'channel_id': channel.id,
+                'sent_time': datetime.now(vn_tz),
+                'member_count': len(pendingkick_members)
+            }
+            
+            print(f"✅ [PENDINGKICK] Đã gửi thông báo cho {len(pendingkick_members)} thành viên (Message ID: {message.id})")
+            print(f"🗑️ [PENDINGKICK] Sẽ xóa lúc: {delete_time.strftime('%H:%M %d/%m/%Y')}")
+            
+        except Exception as e:
+            print(f"❌ [PENDINGKICK] Lỗi gửi thông báo: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def delete_pendingkick_messages(self):
+        """Xóa tin nhắn PendingKick lúc 2h51"""
+        try:
+            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            now = datetime.now(vn_tz)
+            
+            messages_to_delete = []
+            
+            for message_id, info in self.pendingkick_messages.items():
+                # Kiểm tra xem có đến giờ xóa chưa
+                if now >= info['delete_time']:
+                    messages_to_delete.append(message_id)
+            
+            if not messages_to_delete:
+                print("📭 [PENDINGKICK] Không có tin nhắn nào cần xóa")
+                return
+            
+            deleted_count = 0
+            
+            for message_id in messages_to_delete:
+                try:
+                    info = self.pendingkick_messages[message_id]
+                    channel = self.get_channel(info['channel_id'])
+                    
+                    if channel:
+                        message = await channel.fetch_message(message_id)
+                        await message.delete()
+                        deleted_count += 1
+                        print(f"✅ [PENDINGKICK] Đã xóa tin nhắn {message_id}")
+                    
+                    # Xóa khỏi danh sách theo dõi
+                    del self.pendingkick_messages[message_id]
+                    
+                except discord.NotFound:
+                    print(f"⚠️ [PENDINGKICK] Tin nhắn {message_id} đã bị xóa trước đó")
+                    del self.pendingkick_messages[message_id]
+                except Exception as e:
+                    print(f"❌ [PENDINGKICK] Lỗi xóa tin nhắn {message_id}: {e}")
+            
+            print(f"🗑️ [PENDINGKICK] Đã xóa {deleted_count} tin nhắn PendingKick")
+            
+        except Exception as e:
+            print(f"❌ [PENDINGKICK] Lỗi xóa tin nhắn: {e}")
             import traceback
             traceback.print_exc()
     # ==================== SCHEDULED TASKS ====================
@@ -987,6 +1303,205 @@ async def delete_study_room_command(interaction: discord.Interaction):
 async def list_study_rooms_command(interaction: discord.Interaction):
     """Xem danh sách phòng học đếm ngược"""
     await list_countdown_rooms(interaction)
+
+# ==================== WARNING SYSTEM COMMANDS ====================
+
+@bot.tree.command(name="test-warning", description="🧪 [ADMIN] Test hệ thống cảnh báo")
+async def test_warning_command(interaction: discord.Interaction):
+    """Test hệ thống cảnh báo (chỉ admin)"""
+    # Kiểm tra quyền admin (có thể thay bằng role check)
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message("🧪 Đang test hệ thống cảnh báo...", ephemeral=True)
+    
+    try:
+        await bot.send_warning_message()
+        await interaction.followup.send("✅ Đã gửi tin nhắn cảnh báo test!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi test warning: {e}", ephemeral=True)
+
+@bot.tree.command(name="xoa-warning", description="🗑️ [ADMIN] Xóa tất cả tin nhắn cảnh báo")
+async def delete_warning_command(interaction: discord.Interaction):
+    """Xóa tất cả tin nhắn cảnh báo (chỉ admin)"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message("🗑️ Đang xóa tin nhắn cảnh báo...", ephemeral=True)
+    
+    try:
+        await bot.delete_warning_messages()
+        await interaction.followup.send("✅ Đã xóa tất cả tin nhắn cảnh báo!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi xóa warning: {e}", ephemeral=True)
+
+@bot.tree.command(name="warning-status", description="📊 [ADMIN] Xem trạng thái hệ thống cảnh báo")
+async def warning_status_command(interaction: discord.Interaction):
+    """Xem trạng thái hệ thống cảnh báo"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+    now = datetime.now(vn_tz)
+    
+    # Tính thời gian gửi warning tiếp theo (6h sáng)
+    next_warning = now.replace(hour=6, minute=0, second=0, microsecond=0)
+    if now.hour >= 6:
+        next_warning += timedelta(days=1)
+    
+    # Tính thời gian xóa tiếp theo (2h51 sáng)
+    next_delete = now.replace(hour=2, minute=51, second=0, microsecond=0)
+    if now.hour >= 3:
+        next_delete += timedelta(days=1)
+    
+    status_content = f"""
+📊 **TRẠNG THÁI HỆ THỐNG CẢNH BÁO**
+
+⏰ **Thời gian hiện tại**: {now.strftime('%H:%M:%S %d/%m/%Y')}
+
+🔔 **Gửi cảnh báo tiếp theo**: {next_warning.strftime('%H:%M %d/%m/%Y')}
+🗑️ **Xóa tin nhắn tiếp theo**: {next_delete.strftime('%H:%M %d/%m/%Y')}
+
+📋 **Cấu hình:**
+👤 **User ID**: {WARNING_USER_ID}
+📺 **Channel ID**: {WARNING_CHANNEL_ID}
+
+📊 **Tin nhắn đang theo dõi**: {len(bot.warning_messages)}
+
+💡 **Lệnh admin:**
+• `/test-warning` - Test gửi cảnh báo
+• `/xoa-warning` - Xóa tất cả tin nhắn
+• `/warning-status` - Xem trạng thái này
+"""
+    
+    await interaction.response.send_message(status_content, ephemeral=True)
+
+# ==================== PENDINGKICK SYSTEM COMMANDS ====================
+
+@bot.tree.command(name="test-pendingkick", description="🧪 [ADMIN] Test hệ thống PendingKick")
+async def test_pendingkick_command(interaction: discord.Interaction):
+    """Test hệ thống PendingKick (chỉ admin)"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message("🧪 Đang test hệ thống PendingKick...", ephemeral=True)
+    
+    try:
+        await bot.send_pendingkick_message()
+        await interaction.followup.send("✅ Đã gửi tin nhắn PendingKick test!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi test PendingKick: {e}", ephemeral=True)
+
+@bot.tree.command(name="xoa-pendingkick", description="🗑️ [ADMIN] Xóa tất cả tin nhắn PendingKick")
+async def delete_pendingkick_command(interaction: discord.Interaction):
+    """Xóa tất cả tin nhắn PendingKick (chỉ admin)"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    await interaction.response.send_message("🗑️ Đang xóa tin nhắn PendingKick...", ephemeral=True)
+    
+    try:
+        await bot.delete_pendingkick_messages()
+        await interaction.followup.send("✅ Đã xóa tất cả tin nhắn PendingKick!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi xóa PendingKick: {e}", ephemeral=True)
+
+@bot.tree.command(name="pendingkick-status", description="📊 [ADMIN] Xem trạng thái hệ thống PendingKick")
+async def pendingkick_status_command(interaction: discord.Interaction):
+    """Xem trạng thái hệ thống PendingKick"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+    now = datetime.now(vn_tz)
+    
+    # Tính thời gian gửi PendingKick tiếp theo (6h sáng)
+    next_pendingkick = now.replace(hour=6, minute=0, second=0, microsecond=0)
+    if now.hour >= 6:
+        next_pendingkick += timedelta(days=1)
+    
+    # Tính thời gian xóa tiếp theo (2h51 sáng)
+    next_delete = now.replace(hour=2, minute=51, second=0, microsecond=0)
+    if now.hour >= 3:
+        next_delete += timedelta(days=1)
+    
+    # Đếm số thành viên có role PendingKick
+    guild = interaction.guild
+    role = guild.get_role(PENDINGKICK_ROLE_ID)
+    pendingkick_count = len([member for member in guild.members if role in member.roles]) if role else 0
+    
+    status_content = f"""
+📊 **TRẠNG THÁI HỆ THỐNG PENDINGKICK**
+
+⏰ **Thời gian hiện tại**: {now.strftime('%H:%M:%S %d/%m/%Y')}
+
+🚨 **Gửi PendingKick tiếp theo**: {next_pendingkick.strftime('%H:%M %d/%m/%Y')}
+🗑️ **Xóa tin nhắn tiếp theo**: {next_delete.strftime('%H:%M %d/%m/%Y')}
+
+📋 **Cấu hình:**
+🎭 **Role ID**: {PENDINGKICK_ROLE_ID}
+📺 **Channel ID**: {PENDINGKICK_CHANNEL_ID}
+
+👥 **Thành viên PendingKick hiện tại**: {pendingkick_count}
+📊 **Tin nhắn đang theo dõi**: {len(bot.pendingkick_messages)}
+
+💡 **Lệnh admin:**
+• `/test-pendingkick` - Test gửi PendingKick
+• `/xoa-pendingkick` - Xóa tất cả tin nhắn
+• `/pendingkick-status` - Xem trạng thái này
+"""
+    
+    await interaction.response.send_message(status_content, ephemeral=True)
+
+@bot.tree.command(name="list-pendingkick", description="👥 [ADMIN] Xem danh sách thành viên PendingKick")
+async def list_pendingkick_command(interaction: discord.Interaction):
+    """Xem danh sách thành viên có role PendingKick"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    guild = interaction.guild
+    role = guild.get_role(PENDINGKICK_ROLE_ID)
+    
+    if not role:
+        await interaction.response.send_message(f"❌ Không tìm thấy role PendingKick (ID: {PENDINGKICK_ROLE_ID})!", ephemeral=True)
+        return
+    
+    pendingkick_members = [member for member in guild.members if role in member.roles]
+    
+    if not pendingkick_members:
+        await interaction.response.send_message("📭 Hiện tại không có thành viên nào có role PendingKick!", ephemeral=True)
+        return
+    
+    # Tạo danh sách thành viên
+    member_list = ""
+    for i, member in enumerate(pendingkick_members, 1):
+        member_list += f"{i}. **{member.display_name}** ({member.mention})\n"
+        
+        # Giới hạn 20 thành viên để tránh tin nhắn quá dài
+        if i >= 20:
+            member_list += f"... và {len(pendingkick_members) - 20} thành viên khác\n"
+            break
+    
+    list_content = f"""
+👥 **DANH SÁCH THÀNH VIÊN PENDINGKICK**
+
+🎭 **Role**: {role.name} ({role.id})
+👤 **Tổng số**: {len(pendingkick_members)} thành viên
+
+📋 **Danh sách:**
+{member_list}
+
+💡 **Lưu ý**: Những thành viên này sẽ nhận thông báo PendingKick lúc 6h sáng hàng ngày.
+"""
+    
+    await interaction.response.send_message(list_content, ephemeral=True)
 
 async def leaderboard_command(interaction: discord.Interaction, period_type: str, period_name: str):
     """Lệnh bảng xếp hạng chung"""

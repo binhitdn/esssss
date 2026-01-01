@@ -15,10 +15,20 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
   - Thống kê đánh thức cá nhân
 - **📚 Hệ thống phòng học đếm ngược (MỚI!)**:
   - Tạo phòng voice đếm ngược đến ngày mục tiêu
-  - Tự động cập nhật tên phòng mỗi phút
+  - Tự động cập nhật tên phòng mỗi 5 phút
   - Creator có full quyền, người khác chỉ xem
   - Tự động xóa khi hết thời gian
   - Hỗ trợ 2 định dạng hiển thị
+- **⚠️ Hệ thống cảnh báo tự động (MỚI!)**:
+  - Tự động gửi cảnh báo lúc 6h sáng
+  - Tag user cụ thể với thông tin học tập
+  - Tự động xóa tin nhắn lúc 2h51 sáng hôm sau
+  - Lệnh admin để quản lý và test
+- **🚨 Hệ thống PendingKick tự động (MỚI!)**:
+  - Tự động gửi thông báo cho role PendingKick lúc 6h sáng
+  - Tag tất cả thành viên có role cụ thể
+  - Tự động xóa tin nhắn lúc 2h51 sáng hôm sau
+  - Lệnh admin để quản lý và xem danh sách
 - **GUI đẹp mắt**: Sử dụng GUI system của LionBot gốc
 - **Dữ liệu thật**: Lấy từ API với avatar và thời gian thực
 - **Múi giờ Việt Nam**: Hiển thị thời gian theo UTC+7
@@ -57,13 +67,24 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 - `/xoa-phong-hoc` - 🗑️ Xóa phòng học đếm ngược của bạn
 - `/danh-sach-phong-hoc` - 📋 Xem tất cả phòng đếm ngược
 
+### ⚠️ Slash Commands - Hệ Thống Cảnh Báo (MỚI!)
+- `/test-warning` - 🧪 [ADMIN] Test gửi cảnh báo ngay
+- `/xoa-warning` - 🗑️ [ADMIN] Xóa tất cả tin nhắn cảnh báo
+- `/warning-status` - 📊 [ADMIN] Xem trạng thái hệ thống cảnh báo
+
+### 🚨 Slash Commands - Hệ Thống PendingKick (MỚI!)
+- `/test-pendingkick` - 🧪 [ADMIN] Test gửi PendingKick ngay
+- `/xoa-pendingkick` - 🗑️ [ADMIN] Xóa tất cả tin nhắn PendingKick
+- `/pendingkick-status` - 📊 [ADMIN] Xem trạng thái hệ thống PendingKick
+- `/list-pendingkick` - 👥 [ADMIN] Xem danh sách thành viên PendingKick
+
 **Tính năng đặc biệt:**
 - ⏰ **Cooldown 5 phút**: Tránh spam đánh thức
 - 🎲 **Nội dung ngẫu nhiên**: Mỗi lần đánh thức có câu động viên khác nhau
 - 🍅 **Pomodoro Timer**: Tự động báo học 25p và nghỉ 5p
 - 📊 **Thống kê cá nhân**: Theo dõi số lần đánh thức và streak
 - 🏠 **Phòng riêng**: Creator có full quyền, người khác chỉ xem
-- ⏰ **Tự động cập nhật**: Tên phòng cập nhật mỗi phút
+- ⏰ **Tự động cập nhật**: Tên phòng cập nhật mỗi 5 phút
 - 🗑️ **Tự động xóa**: Phòng tự xóa khi hết thời gian
 
 ### Tự động gửi
@@ -129,6 +150,21 @@ chmod +x start.sh
 /xoa-phong-hoc                               # Xóa phòng của bạn
 ```
 
+### Lệnh Admin (Cảnh Báo)
+```
+/test-warning                    # Test gửi cảnh báo ngay
+/xoa-warning                     # Xóa tất cả tin nhắn cảnh báo  
+/warning-status                  # Xem trạng thái hệ thống
+```
+
+### Lệnh Admin (PendingKick)
+```
+/test-pendingkick               # Test gửi PendingKick ngay
+/xoa-pendingkick                # Xóa tất cả tin nhắn PendingKick
+/pendingkick-status             # Xem trạng thái hệ thống
+/list-pendingkick               # Xem danh sách thành viên PendingKick
+```
+
 ### Mẹo Sử Dụng
 - **Cooldown**: 5 phút/người để tránh spam
 - **Thời điểm tốt**: 6h-8h, 13h-14h, 19h-21h
@@ -137,6 +173,9 @@ chmod +x start.sh
 - **Phòng đếm ngược**: Tối đa 3 phòng/người
 - **Định dạng ngày**: DD/MM/YYYY hoặc D/M/YYYY
 - **Quyền phòng**: Creator quản lý, người khác chỉ xem
+- **Cảnh báo tự động**: 6h sáng gửi, 2h51 sáng xóa
+- **PendingKick tự động**: 6h sáng gửi cho role, 2h51 sáng xóa
+- **Lệnh admin**: Chỉ admin mới dùng được lệnh warning/pendingkick
 
 ## ⚙️ Cấu hình
 
@@ -183,6 +222,10 @@ CHANNEL_WEEKLY = 1435035898629591040     # Channel cho bảng xếp hạng tuầ
 CHANNEL_MONTHLY = 1450690861036994763    # Channel cho bảng xếp hạng tháng
 WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
 STUDY_ROOMS_CATEGORY = 1436215086694924449  # Danh mục phòng học đếm ngược
+WARNING_USER_ID = 1436409040036040886        # User ID cần tag warning
+WARNING_CHANNEL_ID = 1446655389860106361     # Channel gửi warning
+PENDINGKICK_ROLE_ID = 1436802180429385768    # Role ID PendingKick
+PENDINGKICK_CHANNEL_ID = 1446655276962021497 # Channel gửi PendingKick
 ```
 
 ### 6. Cấu hình API

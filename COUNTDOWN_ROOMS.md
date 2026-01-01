@@ -120,7 +120,7 @@ STUDY_ROOMS_CATEGORY = 1436215086694924449  # ID danh mục
 ```
 
 ### Cập Nhật
-- **Tần suất**: Mỗi 60 giây
+- **Tần suất**: Mỗi 300 giây (5 phút)
 - **Độ chính xác**: Đến phút
 - **Tự động**: Không cần can thiệp
 

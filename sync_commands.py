@@ -49,6 +49,12 @@ def main():
         print("  - /xoa-phong-hoc")
         print("  - /danh-sach-phong-hoc")
         
+        print("\n🚨 PendingKick system:")
+        print("  - /test-pendingkick")
+        print("  - /xoa-pendingkick")
+        print("  - /pendingkick-status")
+        print("  - /list-pendingkick")
+        
         print("\n🚀 Bước tiếp theo:")
         print("1. Khởi động bot: python3 start.py")
         print("2. Bot sẽ tự động sync commands")
