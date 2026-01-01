@@ -154,21 +154,38 @@ Tạo file `config/secrets.conf`:
 token = YOUR_BOT_TOKEN_HERE
 ```
 
-### 3. Cấu hình Server ID
+### 3. Sync Slash Commands (Quan trọng!)
+**Lần đầu chạy hoặc khi thêm lệnh mới:**
+```bash
+python3 sync_commands.py
+python3 start.py
+```
+
+**Hoặc tạo file thủ công:**
+```bash
+touch .sync_commands
+python3 start.py
+```
+
+Bot sẽ tự động sync và xóa file `.sync_commands` sau khi hoàn tất.
+
+### 4. Cấu hình Server ID
 Trong `leaderboard_only_bot.py`, sửa:
 ```python
 ALLOWED_SERVER_ID = 1434581250798125068  # Thay bằng server ID của bạn
 ```
 
-### 4. Cấu hình Channel IDs (Tự động gửi)
+### 5. Cấu hình Channel IDs
 Trong `leaderboard_only_bot.py`, sửa:
 ```python
 CHANNEL_DAILY = 1450690801934930124      # Channel cho bảng xếp hạng ngày
 CHANNEL_WEEKLY = 1435035898629591040     # Channel cho bảng xếp hạng tuần
 CHANNEL_MONTHLY = 1450690861036994763    # Channel cho bảng xếp hạng tháng
+WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
+STUDY_ROOMS_CATEGORY = 1436215086694924449  # Danh mục phòng học đếm ngược
 ```
 
-### 5. Cấu hình API
+### 6. Cấu hình API
 Trong `leaderboard_only_bot.py`, sửa:
 ```python
 API_BASE_URL = "http://192.168.128.173:3001/api/leaderboard/top-learners"

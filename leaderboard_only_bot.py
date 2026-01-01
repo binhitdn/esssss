@@ -69,7 +69,22 @@ class LeaderboardBot(commands.Bot):
     async def setup_hook(self):
         """Thiết lập bot khi khởi động"""
         print("🤖 Bot bảng xếp hạng đang thiết lập...")
-        print("⚠️ Bỏ qua sync commands (sẽ dùng commands đã sync trước đó)")
+        
+        # Kiểm tra có cần sync commands không
+        import os
+        if os.path.exists('.sync_commands'):
+            print("🔄 Đang sync slash commands...")
+            try:
+                synced = await self.tree.sync()
+                print(f"✅ Đã sync {len(synced)} slash commands")
+                # Xóa file sau khi sync thành công
+                os.remove('.sync_commands')
+            except Exception as e:
+                print(f"❌ Lỗi sync commands: {e}")
+        else:
+            print("⚠️ Bỏ qua sync commands (sẽ dùng commands đã sync trước đó)")
+            print("💡 Tạo file '.sync_commands' để sync lần khởi động tiếp theo")
+        
         print("✅ Setup hook hoàn tất")
     
     async def on_ready(self):
