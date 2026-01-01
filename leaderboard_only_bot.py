@@ -529,6 +529,111 @@ Bạn đã được chuyển sang **PendingKick** do không học đủ mục ti
             import traceback
             traceback.print_exc()
     # ==================== SCHEDULED TASKS ====================
+    
+    async def auto_post_daily_loop(self):
+        """Tự động gửi bảng xếp hạng ngày lúc 2h58 sáng"""
+        try:
+            await self.wait_until_ready()
+            print("✅ Task ngày đã sẵn sàng")
+            
+            while not self.is_closed():
+                try:
+                    now = datetime.now(VN_TZ)
+                    
+                    # Kiểm tra xem có phải 2h58 không
+                    if now.hour == 2 and now.minute == 58:
+                        print("⏰ [AUTO] Đang gửi bảng xếp hạng ngày...")
+                        channel = self.get_channel(CHANNEL_DAILY)
+                        if channel:
+                            await self.send_leaderboard_to_channel(channel, "day", "hôm qua")
+                            print("✅ [AUTO] Đã gửi bảng xếp hạng ngày")
+                        else:
+                            print(f"❌ Không tìm thấy channel {CHANNEL_DAILY}")
+                        
+                        # Đợi 2 phút để tránh gửi lại
+                        await asyncio.sleep(120)
+                    else:
+                        # Kiểm tra lại sau 30 giây
+                        await asyncio.sleep(30)
+                        
+                except Exception as e:
+                    print(f"❌ [AUTO] Lỗi task ngày: {e}")
+                    await asyncio.sleep(60)
+                    
+        except Exception as e:
+            print(f"❌ [FATAL] Task ngày crashed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def auto_post_weekly_loop(self):
+        """Tự động gửi bảng xếp hạng tuần lúc 20h và 2h55"""
+        try:
+            await self.wait_until_ready()
+            print("✅ Task tuần đã sẵn sàng")
+            
+            while not self.is_closed():
+                try:
+                    now = datetime.now(VN_TZ)
+                    
+                    # Kiểm tra xem có phải 20h00 hoặc 2h55 không
+                    if (now.hour == 20 and now.minute == 0) or (now.hour == 2 and now.minute == 55):
+                        print(f"⏰ [AUTO] Đang gửi bảng xếp hạng tuần ({now.hour}h{now.minute:02d})...")
+                        channel = self.get_channel(CHANNEL_WEEKLY)
+                        if channel:
+                            await self.send_leaderboard_to_channel(channel, "week", "tuần này")
+                            print("✅ [AUTO] Đã gửi bảng xếp hạng tuần")
+                        else:
+                            print(f"❌ Không tìm thấy channel {CHANNEL_WEEKLY}")
+                        
+                        # Đợi 2 phút để tránh gửi lại
+                        await asyncio.sleep(120)
+                    else:
+                        # Kiểm tra lại sau 30 giây
+                        await asyncio.sleep(30)
+                        
+                except Exception as e:
+                    print(f"❌ [AUTO] Lỗi task tuần: {e}")
+                    await asyncio.sleep(60)
+                    
+        except Exception as e:
+            print(f"❌ [FATAL] Task tuần crashed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    async def auto_post_monthly_loop(self):
+        """Tự động gửi bảng xếp hạng tháng vào ngày 1 và 15 lúc 2h50"""
+        try:
+            await self.wait_until_ready()
+            print("✅ Task tháng đã sẵn sàng")
+            
+            while not self.is_closed():
+                try:
+                    now = datetime.now(VN_TZ)
+                    
+                    # Kiểm tra xem có phải ngày 1 hoặc 15 lúc 2h50 không
+                    if (now.day == 1 or now.day == 15) and now.hour == 2 and now.minute == 50:
+                        print(f"⏰ [AUTO] Đang gửi bảng xếp hạng tháng (ngày {now.day})...")
+                        channel = self.get_channel(CHANNEL_MONTHLY)
+                        if channel:
+                            await self.send_leaderboard_to_channel(channel, "month", "tháng này")
+                            print("✅ [AUTO] Đã gửi bảng xếp hạng tháng")
+                        else:
+                            print(f"❌ Không tìm thấy channel {CHANNEL_MONTHLY}")
+                        
+                        # Đợi 2 phút để tránh gửi lại
+                        await asyncio.sleep(120)
+                    else:
+                        # Kiểm tra lại sau 30 giây
+                        await asyncio.sleep(30)
+                        
+                except Exception as e:
+                    print(f"❌ [AUTO] Lỗi task tháng: {e}")
+                    await asyncio.sleep(60)
+                    
+        except Exception as e:
+            print(f"❌ [FATAL] Task tháng crashed: {e}")
+            import traceback
+            traceback.print_exc()
         """Tự động gửi bảng xếp hạng ngày lúc 2h58 sáng"""
         try:
             await self.wait_until_ready()
@@ -1461,39 +1566,9 @@ async def warning_status_command(interaction: discord.Interaction):
 
 # ==================== PENDINGKICK SYSTEM COMMANDS ====================
 
-@bot.tree.command(name="test-pendingkick", description="🧪 [ADMIN] Test hệ thống PendingKick")
-async def test_pendingkick_command(interaction: discord.Interaction):
-    """Test hệ thống PendingKick (chỉ admin)"""
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
-        return
-    
-    await interaction.response.send_message("🧪 Đang test hệ thống PendingKick...", ephemeral=True)
-    
-    try:
-        await bot.send_pendingkick_message()
-        await interaction.followup.send("✅ Đã gửi tin nhắn PendingKick test!", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ Lỗi test PendingKick: {e}", ephemeral=True)
-
-@bot.tree.command(name="xoa-pendingkick", description="🗑️ [ADMIN] Xóa tất cả tin nhắn PendingKick")
-async def delete_pendingkick_command(interaction: discord.Interaction):
-    """Xóa tất cả tin nhắn PendingKick (chỉ admin)"""
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
-        return
-    
-    await interaction.response.send_message("🗑️ Đang xóa tin nhắn PendingKick...", ephemeral=True)
-    
-    try:
-        await bot.delete_pendingkick_messages()
-        await interaction.followup.send("✅ Đã xóa tất cả tin nhắn PendingKick!", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ Lỗi xóa PendingKick: {e}", ephemeral=True)
-
-@bot.tree.command(name="pendingkick-status", description="📊 [ADMIN] Xem trạng thái hệ thống PendingKick")
-async def pendingkick_status_command(interaction: discord.Interaction):
-    """Xem trạng thái hệ thống PendingKick"""
+@bot.tree.command(name="debug-tasks", description="🔧 [ADMIN] Debug trạng thái scheduled tasks")
+async def debug_tasks_command(interaction: discord.Interaction):
+    """Debug trạng thái các scheduled tasks"""
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
         return
@@ -1501,87 +1576,86 @@ async def pendingkick_status_command(interaction: discord.Interaction):
     vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
     now = datetime.now(vn_tz)
     
-    # Tính thời gian gửi PendingKick tiếp theo (6h sáng)
-    next_pendingkick = now.replace(hour=6, minute=0, second=0, microsecond=0)
-    if now.hour >= 6:
-        next_pendingkick += timedelta(days=1)
+    # Kiểm tra trạng thái tasks
+    daily_status = "✅ Running" if bot.auto_post_daily_task and not bot.auto_post_daily_task.done() else "❌ Stopped"
+    weekly_status = "✅ Running" if bot.auto_post_weekly_task and not bot.auto_post_weekly_task.done() else "❌ Stopped"
+    monthly_status = "✅ Running" if bot.auto_post_monthly_task and not bot.auto_post_monthly_task.done() else "❌ Stopped"
+    countdown_status = "✅ Running" if bot.countdown_update_task and not bot.countdown_update_task.done() else "❌ Stopped"
+    warning_status = "✅ Running" if bot.warning_task and not bot.warning_task.done() else "❌ Stopped"
+    pendingkick_status = "✅ Running" if bot.pendingkick_task and not bot.pendingkick_task.done() else "❌ Stopped"
     
-    # Tính thời gian xóa tiếp theo (2h51 sáng)
-    next_delete = now.replace(hour=2, minute=51, second=0, microsecond=0)
+    # Tính thời gian gửi tiếp theo
+    next_daily = now.replace(hour=2, minute=58, second=0, microsecond=0)
     if now.hour >= 3:
-        next_delete += timedelta(days=1)
+        next_daily += timedelta(days=1)
     
-    # Đếm số thành viên có role PendingKick
-    guild = interaction.guild
-    role = guild.get_role(PENDINGKICK_ROLE_ID)
-    pendingkick_count = len([member for member in guild.members if role in member.roles]) if role else 0
+    next_weekly_8pm = now.replace(hour=20, minute=0, second=0, microsecond=0)
+    next_weekly_3am = now.replace(hour=2, minute=55, second=0, microsecond=0)
+    if now.hour >= 20:
+        next_weekly_8pm += timedelta(days=1)
+    if now.hour >= 3:
+        next_weekly_3am += timedelta(days=1)
     
-    status_content = f"""
-📊 **TRẠNG THÁI HỆ THỐNG PENDINGKICK**
+    next_monthly = None
+    for day in [1, 15]:
+        candidate = now.replace(day=day, hour=2, minute=50, second=0, microsecond=0)
+        if candidate > now:
+            next_monthly = candidate
+            break
+    if not next_monthly:
+        # Next month
+        if now.month == 12:
+            next_monthly = now.replace(year=now.year+1, month=1, day=1, hour=2, minute=50, second=0, microsecond=0)
+        else:
+            next_monthly = now.replace(month=now.month+1, day=1, hour=2, minute=50, second=0, microsecond=0)
+    
+    debug_content = f"""
+🔧 **DEBUG SCHEDULED TASKS**
 
 ⏰ **Thời gian hiện tại**: {now.strftime('%H:%M:%S %d/%m/%Y')}
 
-🚨 **Gửi PendingKick tiếp theo**: {next_pendingkick.strftime('%H:%M %d/%m/%Y')}
-🗑️ **Xóa tin nhắn tiếp theo**: {next_delete.strftime('%H:%M %d/%m/%Y')}
+📊 **Trạng thái Tasks:**
+• **Daily Task**: {daily_status}
+• **Weekly Task**: {weekly_status}
+• **Monthly Task**: {monthly_status}
+• **Countdown Task**: {countdown_status}
+• **Warning Task**: {warning_status}
+• **PendingKick Task**: {pendingkick_status}
 
-📋 **Cấu hình:**
-🎭 **Role ID**: {PENDINGKICK_ROLE_ID}
-📺 **Channel ID**: {PENDINGKICK_CHANNEL_ID}
+⏰ **Lịch gửi tiếp theo:**
+• **Daily**: {next_daily.strftime('%H:%M %d/%m/%Y')}
+• **Weekly (8PM)**: {next_weekly_8pm.strftime('%H:%M %d/%m/%Y')}
+• **Weekly (3AM)**: {next_weekly_3am.strftime('%H:%M %d/%m/%Y')}
+• **Monthly**: {next_monthly.strftime('%H:%M %d/%m/%Y')}
 
-👥 **Thành viên PendingKick hiện tại**: {pendingkick_count}
-📊 **Tin nhắn đang theo dõi**: {len(bot.pendingkick_messages)}
+📋 **Channel IDs:**
+• **Daily**: {CHANNEL_DAILY}
+• **Weekly**: {CHANNEL_WEEKLY}
+• **Monthly**: {CHANNEL_MONTHLY}
 
-💡 **Lệnh admin:**
-• `/test-pendingkick` - Test gửi PendingKick
-• `/xoa-pendingkick` - Xóa tất cả tin nhắn
-• `/pendingkick-status` - Xem trạng thái này
+💡 **Nếu task bị stopped, restart bot để khởi động lại.**
 """
     
-    await interaction.response.send_message(status_content, ephemeral=True)
+    await interaction.response.send_message(debug_content, ephemeral=True)
 
-@bot.tree.command(name="list-pendingkick", description="👥 [ADMIN] Xem danh sách thành viên PendingKick")
-async def list_pendingkick_command(interaction: discord.Interaction):
-    """Xem danh sách thành viên có role PendingKick"""
+@bot.tree.command(name="test-leaderboard", description="🧪 [ADMIN] Test gửi bảng xếp hạng ngay")
+async def test_leaderboard_command(interaction: discord.Interaction, period_type: str = "day"):
+    """Test gửi bảng xếp hạng"""
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
         return
     
-    guild = interaction.guild
-    role = guild.get_role(PENDINGKICK_ROLE_ID)
-    
-    if not role:
-        await interaction.response.send_message(f"❌ Không tìm thấy role PendingKick (ID: {PENDINGKICK_ROLE_ID})!", ephemeral=True)
+    if period_type not in ["day", "week", "month"]:
+        await interaction.response.send_message("❌ Period type phải là: day, week, hoặc month", ephemeral=True)
         return
     
-    pendingkick_members = [member for member in guild.members if role in member.roles]
+    await interaction.response.send_message(f"🧪 Đang test gửi bảng xếp hạng {period_type}...", ephemeral=True)
     
-    if not pendingkick_members:
-        await interaction.response.send_message("📭 Hiện tại không có thành viên nào có role PendingKick!", ephemeral=True)
-        return
-    
-    # Tạo danh sách thành viên
-    member_list = ""
-    for i, member in enumerate(pendingkick_members, 1):
-        member_list += f"{i}. **{member.display_name}** ({member.mention})\n"
-        
-        # Giới hạn 20 thành viên để tránh tin nhắn quá dài
-        if i >= 20:
-            member_list += f"... và {len(pendingkick_members) - 20} thành viên khác\n"
-            break
-    
-    list_content = f"""
-👥 **DANH SÁCH THÀNH VIÊN PENDINGKICK**
-
-🎭 **Role**: {role.name} ({role.id})
-👤 **Tổng số**: {len(pendingkick_members)} thành viên
-
-📋 **Danh sách:**
-{member_list}
-
-💡 **Lưu ý**: Những thành viên này sẽ nhận thông báo PendingKick lúc 6h sáng hàng ngày.
-"""
-    
-    await interaction.response.send_message(list_content, ephemeral=True)
+    try:
+        await bot.send_leaderboard_to_channel(interaction.channel, period_type, f"{period_type} (test)")
+        await interaction.followup.send(f"✅ Đã test gửi bảng xếp hạng {period_type}!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi test leaderboard: {e}", ephemeral=True)
 
 async def leaderboard_command(interaction: discord.Interaction, period_type: str, period_name: str):
     """Lệnh bảng xếp hạng chung"""

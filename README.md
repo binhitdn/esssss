@@ -72,11 +72,9 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 - `/xoa-warning` - 🗑️ [ADMIN] Xóa tất cả tin nhắn cảnh báo
 - `/warning-status` - 📊 [ADMIN] Xem trạng thái hệ thống cảnh báo
 
-### 🚨 Slash Commands - Hệ Thống PendingKick (MỚI!)
-- `/test-pendingkick` - 🧪 [ADMIN] Test gửi PendingKick ngay
-- `/xoa-pendingkick` - 🗑️ [ADMIN] Xóa tất cả tin nhắn PendingKick
-- `/pendingkick-status` - 📊 [ADMIN] Xem trạng thái hệ thống PendingKick
-- `/list-pendingkick` - 👥 [ADMIN] Xem danh sách thành viên PendingKick
+### 🔧 Slash Commands - Debug & Test (ADMIN)
+- `/debug-tasks` - 🔧 [ADMIN] Kiểm tra trạng thái scheduled tasks
+- `/test-leaderboard [type]` - 🧪 [ADMIN] Test gửi bảng xếp hạng ngay
 
 **Tính năng đặc biệt:**
 - ⏰ **Cooldown 5 phút**: Tránh spam đánh thức
@@ -162,12 +160,12 @@ chmod +x start.sh
 /warning-status                  # Xem trạng thái hệ thống
 ```
 
-### Lệnh Admin (PendingKick)
+### Lệnh Admin (Debug & Test)
 ```
-/test-pendingkick               # Test gửi PendingKick ngay
-/xoa-pendingkick                # Xóa tất cả tin nhắn PendingKick
-/pendingkick-status             # Xem trạng thái hệ thống
-/list-pendingkick               # Xem danh sách thành viên PendingKick
+/debug-tasks                     # Kiểm tra trạng thái scheduled tasks
+/test-leaderboard day            # Test gửi bảng xếp hạng ngày
+/test-leaderboard week           # Test gửi bảng xếp hạng tuần
+/test-leaderboard month          # Test gửi bảng xếp hạng tháng
 ```
 
 ### Mẹo Sử Dụng
@@ -179,8 +177,8 @@ chmod +x start.sh
 - **Định dạng ngày**: DD/MM/YYYY hoặc D/M/YYYY
 - **Quyền phòng**: Creator quản lý, người khác chỉ xem
 - **Cảnh báo tự động**: 6h sáng gửi, 2h51 sáng xóa
-- **PendingKick tự động**: 6h sáng gửi cho role, 2h51 sáng xóa
-- **Lệnh admin**: Chỉ admin mới dùng được lệnh warning/pendingkick
+- **PendingKick tự động**: 6h sáng gửi cho role, 2h51 sáng xóa (chỉ logic, không có lệnh)
+- **Lệnh admin**: Chỉ admin mới dùng được lệnh warning/debug
 
 ## ⚙️ Cấu hình
 

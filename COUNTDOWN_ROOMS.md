@@ -21,21 +21,25 @@ Tính năng tạo phòng voice đếm ngược đến ngày mục tiêu, giúp t
 
 **Cú pháp:**
 ```
-/tao-phong-hoc [tên] [ngày] [định dạng]
+/tao-phong-hoc [tên] [ngày]
 ```
 
 **Tham số:**
 - **tên**: Tên mục tiêu (VD: JLPT, Thi cuối kỳ, Tốt nghiệp)
 - **ngày**: Ngày mục tiêu (DD/MM/YYYY hoặc D/M/YYYY)
-- **định dạng**: "full" hoặc "countdown"
+
+**Quy trình:**
+1. Nhập lệnh với tên và ngày
+2. Bot hiển thị dropdown select với 4 định dạng
+3. Chọn định dạng yêu thích
+4. Bot tạo phòng với định dạng đã chọn
 
 **Ví dụ:**
 ```
-/tao-phong-hoc "JLPT N2" "9/12/2025" "full"
-→ Tạo phòng: "JLPT N2 Còn 125d22h23p"
-
-/tao-phong-hoc "Thi cuối kỳ" "15/1/2026" "countdown"  
-→ Tạo phòng: "89d15h42p"
+/tao-phong-hoc "JLPT N2" "9/12/2025"
+→ Hiển thị dropdown với 4 tùy chọn
+→ Chọn "📝 Tên + Còn xx ngày xx giờ xx phút"
+→ Tạo phòng: "JLPT N2 Còn 125 ngày 22 giờ 30 phút"
 ```
 
 ### 2. 🗑️ Xóa Phòng (`/xoa-phong-hoc`)
@@ -94,10 +98,18 @@ VD: "125d22h30p"
 **Ưu điểm**: Cực kỳ gọn gàng, tiết kiệm không gian
 **Nhược điểm**: Khó đọc, không có context
 
-### Ý Nghĩa Ký Hiệu
+### Ý Nghĩa Ký Hiệu (Compact Formats)
 - **d**: ngày (days)
 - **h**: giờ (hours) 
 - **p**: phút (minutes)
+
+### Lựa Chọn Định Dạng
+Khi tạo phòng với `/tao-phong-hoc`, bot sẽ hiển thị dropdown select với 4 tùy chọn:
+
+1. **📝 Tên + Còn xx ngày xx giờ xx phút** - Dễ đọc nhất
+2. **📋 Tên + Còn xxdxxhxxp** - Cân bằng
+3. **⏰ xx ngày xx giờ xx phút** - Tập trung thời gian
+4. **⏱️ xxdxxhxxp** - Gọn nhất
 
 ## 📅 Định Dạng Ngày
 
@@ -258,8 +270,10 @@ Ví dụ: 9/12/2025, 09/12/2025
 
 ### 2. **Chọn Định Dạng Phù Hợp**
 ```
-"full": Khi muốn mọi người biết mục tiêu
-"countdown": Khi muốn gọn gàng, chỉ cần thời gian
+📝 "Tên + Còn xx ngày xx giờ xx phút": Khi muốn dễ đọc nhất
+📋 "Tên + Còn xxdxxhxxp": Khi muốn cân bằng giữa rõ ràng và gọn gàng  
+⏰ "xx ngày xx giờ xx phút": Khi chỉ quan tâm thời gian
+⏱️ "xxdxxhxxp": Khi muốn tiết kiệm không gian tối đa
 ```
 
 ### 3. **Quản Lý Nhiều Phòng**
