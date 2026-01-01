@@ -35,6 +35,9 @@ CHANNEL_MONTHLY = 1450690861036994763    # Bảng xếp hạng tháng - ngày 1 
 # Channel ID cho đánh thức học tập
 WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
 
+# Category ID cho phòng học đếm ngược
+STUDY_ROOMS_CATEGORY = 1436215086694924449  # Danh mục phòng học đếm ngược
+
 # Múi giờ Việt Nam
 VN_TZ = pytz.timezone('Asia/Ho_Chi_Minh')
 
@@ -58,6 +61,10 @@ class LeaderboardBot(commands.Bot):
         # Cooldown cho đánh thức (tránh spam)
         self.wakeup_cooldown = {}
         self.wakeup_cooldown_duration = 300  # 5 phút
+        
+        # Lưu trữ thông tin phòng đếm ngược
+        self.countdown_rooms = {}  # {channel_id: {'name': str, 'target_date': datetime, 'creator_id': int, 'format_type': str}}
+        self.countdown_update_task = None
         
     async def setup_hook(self):
         """Thiết lập bot khi khởi động"""
@@ -93,6 +100,10 @@ class LeaderboardBot(commands.Bot):
                     self.auto_post_daily_task = self.loop.create_task(self.auto_post_daily_loop())
                     self.auto_post_weekly_task = self.loop.create_task(self.auto_post_weekly_loop())
                     self.auto_post_monthly_task = self.loop.create_task(self.auto_post_monthly_loop())
+                    
+                    # Khởi động countdown update task
+                    self.countdown_update_task = self.loop.create_task(self.countdown_update_loop())
+                    
                     print("✅ Đã khởi động tất cả scheduled tasks")
                 except Exception as e:
                     print(f"❌ Lỗi khởi động tasks: {e}")
@@ -115,9 +126,78 @@ class LeaderboardBot(commands.Bot):
         else:
             print(f"✅ Bot join server được phép: {guild.name}")
     
-    # ==================== SCHEDULED TASKS ====================
+    # ==================== COUNTDOWN ROOM LOOP ====================
     
-    async def auto_post_daily_loop(self):
+    async def countdown_update_loop(self):
+        """Cập nhật tên phòng đếm ngược mỗi phút"""
+        try:
+            await self.wait_until_ready()
+            print("✅ Countdown update task đã sẵn sàng")
+            
+            while not self.is_closed():
+                try:
+                    if self.countdown_rooms:
+                        print(f"🔄 Cập nhật {len(self.countdown_rooms)} phòng đếm ngược...")
+                        
+                        rooms_to_remove = []
+                        
+                        for channel_id, room_info in self.countdown_rooms.items():
+                            channel = self.get_channel(channel_id)
+                            if not channel:
+                                rooms_to_remove.append(channel_id)
+                                continue
+                            
+                            # Tính toán thời gian còn lại
+                            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                            now = datetime.now(vn_tz)
+                            target_date = room_info['target_date']
+                            
+                            # Đảm bảo target_date có timezone
+                            if target_date.tzinfo is None:
+                                target_date = vn_tz.localize(target_date)
+                            
+                            time_left = target_date - now
+                            
+                            if time_left.total_seconds() <= 0:
+                                # Hết thời gian - xóa phòng
+                                print(f"⏰ Phòng {room_info['name']} đã hết thời gian, đang xóa...")
+                                
+                                # Gửi thông báo cuối
+                                try:
+                                    await channel.send(f"🎉 **ĐÃ ĐẾN NGÀY {room_info['name'].upper()}!** 🎉\n\nPhòng này sẽ tự động xóa sau 30 giây...")
+                                    await asyncio.sleep(30)
+                                    await channel.delete(reason="Countdown finished")
+                                except Exception as e:
+                                    print(f"❌ Lỗi xóa phòng {channel_id}: {e}")
+                                
+                                rooms_to_remove.append(channel_id)
+                            else:
+                                # Cập nhật tên phòng
+                                new_name = generate_countdown_name(room_info['name'], time_left, room_info['format_type'])
+                                
+                                if channel.name != new_name:
+                                    try:
+                                        await channel.edit(name=new_name, reason="Countdown update")
+                                        print(f"✅ Cập nhật phòng: {new_name}")
+                                    except Exception as e:
+                                        print(f"❌ Lỗi cập nhật tên phòng {channel_id}: {e}")
+                        
+                        # Xóa các phòng đã hết hạn
+                        for channel_id in rooms_to_remove:
+                            del self.countdown_rooms[channel_id]
+                    
+                    # Đợi 60 giây trước khi cập nhật tiếp
+                    await asyncio.sleep(60)
+                    
+                except Exception as e:
+                    print(f"❌ [COUNTDOWN] Lỗi update loop: {e}")
+                    await asyncio.sleep(60)
+                    
+        except Exception as e:
+            print(f"❌ [FATAL] Countdown update task crashed: {e}")
+            import traceback
+            traceback.print_exc()
+    # ==================== SCHEDULED TASKS ====================
         """Tự động gửi bảng xếp hạng ngày lúc 2h58 sáng"""
         try:
             await self.wait_until_ready()
@@ -865,6 +945,34 @@ async def wakeup_stats_command(interaction: discord.Interaction):
     
     await interaction.response.send_message(stats_content, ephemeral=True)
 
+# ==================== COUNTDOWN ROOM COMMANDS ====================
+
+@bot.tree.command(name="tao-phong-hoc", description="📚 Tạo phòng học đếm ngược đến ngày mục tiêu")
+async def create_study_room_command(
+    interaction: discord.Interaction, 
+    name: str, 
+    date: str, 
+    format_type: str = "full"
+):
+    """Tạo phòng học đếm ngược
+    
+    Args:
+        name: Tên phòng học (VD: JLPT, Thi cuối kỳ)
+        date: Ngày mục tiêu (DD/MM/YYYY hoặc DD/MM/YYYY)
+        format_type: "full" (tên + đếm ngược) hoặc "countdown" (chỉ đếm ngược)
+    """
+    await create_countdown_room(interaction, name, date, format_type)
+
+@bot.tree.command(name="xoa-phong-hoc", description="🗑️ Xóa phòng học đếm ngược của bạn")
+async def delete_study_room_command(interaction: discord.Interaction):
+    """Xóa phòng học đếm ngược"""
+    await delete_countdown_room(interaction)
+
+@bot.tree.command(name="danh-sach-phong-hoc", description="📋 Xem danh sách phòng học đếm ngược")
+async def list_study_rooms_command(interaction: discord.Interaction):
+    """Xem danh sách phòng học đếm ngược"""
+    await list_countdown_rooms(interaction)
+
 async def leaderboard_command(interaction: discord.Interaction, period_type: str, period_name: str):
     """Lệnh bảng xếp hạng chung"""
     # Respond ngay lập tức để tránh timeout
@@ -1082,6 +1190,287 @@ async def generate_wakeup_content(caller: discord.Member, target_type: str, targ
 """
     
     return content
+
+def generate_countdown_name(base_name: str, time_left: timedelta, format_type: str) -> str:
+    """Tạo tên phòng đếm ngược"""
+    days = time_left.days
+    hours, remainder = divmod(time_left.seconds, 3600)
+    minutes, _ = divmod(remainder, 60)
+    
+    if format_type == "countdown":
+        # Chỉ hiển thị đếm ngược: "125d22h23p"
+        return f"{days}d{hours:02d}h{minutes:02d}p"
+    else:
+        # Hiển thị tên + đếm ngược: "JLPT Còn 125d22h23p"
+        return f"{base_name} Còn {days}d{hours:02d}h{minutes:02d}p"
+
+def parse_date_string(date_str: str) -> datetime:
+    """Parse chuỗi ngày tháng thành datetime"""
+    # Hỗ trợ các format: DD/MM/YYYY, D/M/YYYY, DD/MM/YY
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+    
+    # Thử các format khác nhau
+    formats = [
+        "%d/%m/%Y",    # 09/12/2025
+        "%d/%m/%y",    # 09/12/25
+        "%-d/%-m/%Y",  # 9/12/2025 (Unix)
+        "%#d/%#m/%Y"   # 9/12/2025 (Windows)
+    ]
+    
+    for fmt in formats:
+        try:
+            # Parse ngày
+            parsed_date = datetime.strptime(date_str, fmt)
+            
+            # Nếu năm < 100, coi như 20xx
+            if parsed_date.year < 100:
+                parsed_date = parsed_date.replace(year=parsed_date.year + 2000)
+            
+            # Set thời gian là 23:59:59 của ngày đó
+            parsed_date = parsed_date.replace(hour=23, minute=59, second=59)
+            
+            # Thêm timezone
+            return vn_tz.localize(parsed_date)
+            
+        except ValueError:
+            continue
+    
+    # Nếu không parse được, thử format đơn giản
+    try:
+        parts = date_str.split('/')
+        if len(parts) == 3:
+            day, month, year = map(int, parts)
+            
+            # Xử lý năm 2 chữ số
+            if year < 100:
+                year += 2000
+            
+            parsed_date = datetime(year, month, day, 23, 59, 59)
+            return vn_tz.localize(parsed_date)
+    except:
+        pass
+    
+    raise ValueError(f"Không thể parse ngày: {date_str}")
+
+async def create_countdown_room(interaction: discord.Interaction, name: str, date_str: str, format_type: str):
+    """Tạo phòng học đếm ngược"""
+    try:
+        # Validate format_type
+        if format_type not in ["full", "countdown"]:
+            await interaction.response.send_message("❌ Format phải là 'full' hoặc 'countdown'!", ephemeral=True)
+            return
+        
+        # Parse ngày
+        try:
+            target_date = parse_date_string(date_str)
+        except ValueError as e:
+            await interaction.response.send_message(
+                f"❌ Định dạng ngày không hợp lệ!\n"
+                f"**Hỗ trợ:** DD/MM/YYYY hoặc D/M/YYYY\n"
+                f"**Ví dụ:** 9/12/2025, 09/12/2025\n"
+                f"**Lỗi:** {e}", 
+                ephemeral=True
+            )
+            return
+        
+        # Kiểm tra ngày có trong tương lai không
+        vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+        now = datetime.now(vn_tz)
+        
+        if target_date <= now:
+            await interaction.response.send_message("❌ Ngày mục tiêu phải trong tương lai!", ephemeral=True)
+            return
+        
+        # Kiểm tra user đã có phòng chưa
+        user_rooms = [room for room in bot.countdown_rooms.values() if room['creator_id'] == interaction.user.id]
+        if len(user_rooms) >= 3:  # Giới hạn 3 phòng/user
+            await interaction.response.send_message("❌ Bạn chỉ có thể tạo tối đa 3 phòng đếm ngược!", ephemeral=True)
+            return
+        
+        await interaction.response.send_message("🏗️ Đang tạo phòng học đếm ngược...", ephemeral=True)
+        
+        # Tính toán tên phòng ban đầu
+        time_left = target_date - now
+        initial_name = generate_countdown_name(name, time_left, format_type)
+        
+        # Lấy category
+        category = bot.get_channel(STUDY_ROOMS_CATEGORY)
+        if not category:
+            await interaction.followup.send("❌ Không tìm thấy danh mục phòng học!", ephemeral=True)
+            return
+        
+        # Tạo overwrites (quyền)
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(
+                view_channel=True,      # Mọi người xem được
+                connect=False,          # Nhưng không kết nối được
+                send_messages=False     # Không gửi tin nhắn được
+            ),
+            interaction.user: discord.PermissionOverwrite(
+                view_channel=True,
+                connect=True,           # Creator có thể kết nối
+                manage_channels=True,   # Creator có thể quản lý phòng
+                send_messages=True,     # Creator có thể gửi tin nhắn
+                manage_messages=True    # Creator có thể quản lý tin nhắn
+            )
+        }
+        
+        # Tạo voice channel
+        voice_channel = await category.create_voice_channel(
+            name=initial_name,
+            overwrites=overwrites,
+            reason=f"Countdown room created by {interaction.user}"
+        )
+        
+        # Lưu thông tin phòng
+        bot.countdown_rooms[voice_channel.id] = {
+            'name': name,
+            'target_date': target_date,
+            'creator_id': interaction.user.id,
+            'format_type': format_type
+        }
+        
+        # Tạo thông báo thành công
+        success_message = f"""
+✅ **PHÒNG HỌC ĐÃ TẠO THÀNH CÔNG!**
+
+📚 **Tên phòng**: {initial_name}
+🎯 **Mục tiêu**: {target_date.strftime('%d/%m/%Y %H:%M')}
+⏰ **Thời gian còn lại**: {time_left.days} ngày {time_left.seconds//3600} giờ
+👤 **Chủ phòng**: {interaction.user.mention}
+
+**🔧 Quyền của bạn:**
+• ✅ Kết nối vào phòng
+• ✅ Quản lý phòng (đổi tên, xóa)
+• ✅ Gửi tin nhắn trong phòng
+
+**📋 Lưu ý:**
+• Tên phòng tự động cập nhật mỗi phút
+• Phòng tự động xóa khi hết thời gian
+• Mọi người có thể xem nhưng không kết nối được
+• Dùng `/xoa-phong-hoc` để xóa phòng
+
+🎉 **Chúc bạn học tập hiệu quả!**
+"""
+        
+        await interaction.followup.send(success_message, ephemeral=True)
+        
+        print(f"✅ Tạo phòng đếm ngược: {initial_name} (Creator: {interaction.user.name})")
+        
+    except Exception as e:
+        print(f"❌ Lỗi tạo phòng đếm ngược: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        try:
+            await interaction.followup.send("❌ Có lỗi xảy ra khi tạo phòng!", ephemeral=True)
+        except:
+            pass
+
+async def delete_countdown_room(interaction: discord.Interaction):
+    """Xóa phòng học đếm ngược của user"""
+    try:
+        # Tìm phòng của user
+        user_rooms = []
+        for channel_id, room_info in bot.countdown_rooms.items():
+            if room_info['creator_id'] == interaction.user.id:
+                channel = bot.get_channel(channel_id)
+                if channel:
+                    user_rooms.append((channel_id, channel, room_info))
+        
+        if not user_rooms:
+            await interaction.response.send_message("❌ Bạn không có phòng đếm ngược nào!", ephemeral=True)
+            return
+        
+        if len(user_rooms) == 1:
+            # Chỉ có 1 phòng - xóa luôn
+            channel_id, channel, room_info = user_rooms[0]
+            
+            await interaction.response.send_message(f"🗑️ Đang xóa phòng '{channel.name}'...", ephemeral=True)
+            
+            try:
+                await channel.delete(reason=f"Deleted by creator {interaction.user}")
+                del bot.countdown_rooms[channel_id]
+                
+                await interaction.followup.send(f"✅ Đã xóa phòng '{room_info['name']}'!", ephemeral=True)
+                print(f"🗑️ Xóa phòng đếm ngược: {room_info['name']} (Creator: {interaction.user.name})")
+                
+            except Exception as e:
+                await interaction.followup.send(f"❌ Lỗi xóa phòng: {e}", ephemeral=True)
+        
+        else:
+            # Có nhiều phòng - hiển thị danh sách
+            room_list = ""
+            for i, (channel_id, channel, room_info) in enumerate(user_rooms, 1):
+                vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                now = datetime.now(vn_tz)
+                time_left = room_info['target_date'] - now
+                
+                room_list += f"{i}. **{room_info['name']}** - Còn {time_left.days}d{time_left.seconds//3600:02d}h\n"
+            
+            message = f"""
+📋 **DANH SÁCH PHÒNG CỦA BẠN**
+
+{room_list}
+
+⚠️ **Để xóa phòng cụ thể:**
+1. Vào phòng đó và dùng lệnh `/xoa-phong-hoc`
+2. Hoặc xóa trực tiếp trong Discord (chuột phải > Delete Channel)
+
+💡 **Mẹo**: Bạn có thể quản lý phòng trực tiếp trong Discord!
+"""
+            
+            await interaction.response.send_message(message, ephemeral=True)
+            
+    except Exception as e:
+        print(f"❌ Lỗi xóa phòng đếm ngược: {e}")
+        await interaction.response.send_message("❌ Có lỗi xảy ra!", ephemeral=True)
+
+async def list_countdown_rooms(interaction: discord.Interaction):
+    """Hiển thị danh sách phòng đếm ngược"""
+    try:
+        if not bot.countdown_rooms:
+            await interaction.response.send_message("📭 Hiện tại không có phòng đếm ngược nào!", ephemeral=True)
+            return
+        
+        vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+        now = datetime.now(vn_tz)
+        
+        room_list = ""
+        user_rooms = ""
+        
+        for channel_id, room_info in bot.countdown_rooms.items():
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                continue
+            
+            time_left = room_info['target_date'] - now
+            creator = bot.get_user(room_info['creator_id'])
+            creator_name = creator.display_name if creator else "Unknown"
+            
+            room_entry = f"📚 **{room_info['name']}** - Còn {time_left.days}d{time_left.seconds//3600:02d}h{(time_left.seconds%3600)//60:02d}p\n"
+            room_entry += f"   👤 {creator_name} | 🎯 {room_info['target_date'].strftime('%d/%m/%Y')}\n\n"
+            
+            if room_info['creator_id'] == interaction.user.id:
+                user_rooms += room_entry
+            else:
+                room_list += room_entry
+        
+        message = "📋 **DANH SÁCH PHÒNG HỌC ĐẾMNGƯỢC**\n\n"
+        
+        if user_rooms:
+            message += "🏠 **PHÒNG CỦA BẠN:**\n" + user_rooms
+        
+        if room_list:
+            message += "🌍 **PHÒNG CỦA THÀNH VIÊN KHÁC:**\n" + room_list
+        
+        message += "💡 **Mẹo**: Dùng `/tao-phong-hoc` để tạo phòng mới!"
+        
+        await interaction.response.send_message(message, ephemeral=True)
+        
+    except Exception as e:
+        print(f"❌ Lỗi hiển thị danh sách phòng: {e}")
+        await interaction.response.send_message("❌ Có lỗi xảy ra!", ephemeral=True)
 
 def main():
     """Hàm main để chạy bot"""

@@ -13,6 +13,12 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
   - Hẹn giờ đánh thức thông minh
   - Timer Pomodoro tự động
   - Thống kê đánh thức cá nhân
+- **📚 Hệ thống phòng học đếm ngược (MỚI!)**:
+  - Tạo phòng voice đếm ngược đến ngày mục tiêu
+  - Tự động cập nhật tên phòng mỗi phút
+  - Creator có full quyền, người khác chỉ xem
+  - Tự động xóa khi hết thời gian
+  - Hỗ trợ 2 định dạng hiển thị
 - **GUI đẹp mắt**: Sử dụng GUI system của LionBot gốc
 - **Dữ liệu thật**: Lấy từ API với avatar và thời gian thực
 - **Múi giờ Việt Nam**: Hiển thị thời gian theo UTC+7
@@ -46,11 +52,19 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 - `/danh-thuc-pomodoro [chu kỳ]` - 🍅 Timer Pomodoro (25p học + 5p nghỉ)
 - `/danh-thuc-stats` - 📊 Xem thống kê đánh thức cá nhân
 
+### 📚 Slash Commands - Phòng Học Đếm Ngược (MỚI!)
+- `/tao-phong-hoc [tên] [ngày] [định dạng]` - 🏗️ Tạo phòng đếm ngược đến ngày mục tiêu
+- `/xoa-phong-hoc` - 🗑️ Xóa phòng học đếm ngược của bạn
+- `/danh-sach-phong-hoc` - 📋 Xem tất cả phòng đếm ngược
+
 **Tính năng đặc biệt:**
 - ⏰ **Cooldown 5 phút**: Tránh spam đánh thức
 - 🎲 **Nội dung ngẫu nhiên**: Mỗi lần đánh thức có câu động viên khác nhau
 - 🍅 **Pomodoro Timer**: Tự động báo học 25p và nghỉ 5p
 - 📊 **Thống kê cá nhân**: Theo dõi số lần đánh thức và streak
+- 🏠 **Phòng riêng**: Creator có full quyền, người khác chỉ xem
+- ⏰ **Tự động cập nhật**: Tên phòng cập nhật mỗi phút
+- 🗑️ **Tự động xóa**: Phòng tự xóa khi hết thời gian
 
 ### Tự động gửi
 Bot sẽ tự động gửi bảng xếp hạng theo lịch:
@@ -107,11 +121,22 @@ chmod +x start.sh
 /danh-thuc-stats                        # Xem thống kê cá nhân
 ```
 
+### Lệnh Phòng Học Đếm Ngược
+```
+/tao-phong-hoc "JLPT" "9/12/2025" "full"     # Tạo phòng "JLPT Còn 125d22h23p"
+/tao-phong-hoc "Thi cuối kỳ" "15/1/2026" "countdown"  # Tạo phòng "89d15h42p"
+/danh-sach-phong-hoc                          # Xem tất cả phòng
+/xoa-phong-hoc                               # Xóa phòng của bạn
+```
+
 ### Mẹo Sử Dụng
 - **Cooldown**: 5 phút/người để tránh spam
 - **Thời điểm tốt**: 6h-8h, 13h-14h, 19h-21h
 - **Pomodoro**: Bắt đầu với 1-2 chu kỳ, tăng dần
 - **Hẹn giờ**: Tối đa 24 giờ (1440 phút)
+- **Phòng đếm ngược**: Tối đa 3 phòng/người
+- **Định dạng ngày**: DD/MM/YYYY hoặc D/M/YYYY
+- **Quyền phòng**: Creator quản lý, người khác chỉ xem
 
 ## ⚙️ Cấu hình
 
