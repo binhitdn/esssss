@@ -19,11 +19,12 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
   - Tự động cập nhật tên phòng mỗi 5 phút
   - Creator có full quyền, người khác chỉ xem
   - Tự động xóa khi hết thời gian
-- **⚠️ Hệ thống cảnh báo tự động (MỚI!)**:
-  - Tự động gửi cảnh báo lúc 6h sáng
-  - Tag user cụ thể với thông tin học tập
+- **⚠️ Hệ thống nhắc nhở tự động (MỚI!)**:
+  - Tự động gửi nhắc nhở lúc 6h sáng cho role Warning
+  - Tag tất cả thành viên có role cụ thể (không phải user ID)
+  - Văn bản nhẹ nhàng, thân thiện ("cậu", "lọc" thay vì "kick")
   - Tự động xóa tin nhắn lúc 2h51 sáng hôm sau
-  - Lệnh admin để quản lý và test
+  - Lệnh admin để quản lý và xem danh sách
 - **🚨 Hệ thống PendingKick tự động (MỚI!)**:
   - Tự động gửi thông báo cho role PendingKick lúc 6h sáng
   - Tag tất cả thành viên có role cụ thể
@@ -67,10 +68,11 @@ Bot Discord hiển thị bảng xếp hạng học tập với GUI đẹp mắt 
 - `/xoa-phong-hoc` - 🗑️ Xóa phòng học đếm ngược của bạn
 - `/danh-sach-phong-hoc` - 📋 Xem tất cả phòng đếm ngược
 
-### ⚠️ Slash Commands - Hệ Thống Cảnh Báo (MỚI!)
-- `/test-warning` - 🧪 [ADMIN] Test gửi cảnh báo ngay
-- `/xoa-warning` - 🗑️ [ADMIN] Xóa tất cả tin nhắn cảnh báo
-- `/warning-status` - 📊 [ADMIN] Xem trạng thái hệ thống cảnh báo
+### ⚠️ Slash Commands - Hệ Thống Nhắc Nhở (MỚI!)
+- `/test-warning` - 🧪 [ADMIN] Test gửi nhắc nhở ngay
+- `/xoa-warning` - 🗑️ [ADMIN] Xóa tất cả tin nhắn nhắc nhở
+- `/warning-status` - 📊 [ADMIN] Xem trạng thái hệ thống nhắc nhở
+- `/list-warning` - 👥 [ADMIN] Xem danh sách thành viên Warning
 
 ### 🔧 Slash Commands - Debug & Test (ADMIN)
 - `/debug-tasks` - 🔧 [ADMIN] Kiểm tra trạng thái scheduled tasks
@@ -153,11 +155,12 @@ chmod +x start.sh
 - **xx ngày xx giờ xx phút**: `125 ngày 22 giờ 30 phút`
 - **xxdxxhxxp**: `125d22h30p`
 
-### Lệnh Admin (Cảnh Báo)
+### Lệnh Admin (Nhắc Nhở)
 ```
-/test-warning                    # Test gửi cảnh báo ngay
-/xoa-warning                     # Xóa tất cả tin nhắn cảnh báo  
+/test-warning                    # Test gửi nhắc nhở ngay
+/xoa-warning                     # Xóa tất cả tin nhắn nhắc nhở  
 /warning-status                  # Xem trạng thái hệ thống
+/list-warning                    # Xem danh sách thành viên Warning
 ```
 
 ### Lệnh Admin (Debug & Test)
@@ -176,7 +179,7 @@ chmod +x start.sh
 - **Phòng đếm ngược**: Tối đa 3 phòng/người
 - **Định dạng ngày**: DD/MM/YYYY hoặc D/M/YYYY
 - **Quyền phòng**: Creator quản lý, người khác chỉ xem
-- **Cảnh báo tự động**: 6h sáng gửi, 2h51 sáng xóa
+- **Nhắc nhở tự động**: 6h sáng gửi cho role, 2h51 sáng xóa
 - **PendingKick tự động**: 6h sáng gửi cho role, 2h51 sáng xóa (chỉ logic, không có lệnh)
 - **Lệnh admin**: Chỉ admin mới dùng được lệnh warning/debug
 
@@ -225,7 +228,7 @@ CHANNEL_WEEKLY = 1435035898629591040     # Channel cho bảng xếp hạng tuầ
 CHANNEL_MONTHLY = 1450690861036994763    # Channel cho bảng xếp hạng tháng
 WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
 STUDY_ROOMS_CATEGORY = 1436215086694924449  # Danh mục phòng học đếm ngược
-WARNING_USER_ID = 1436409040036040886        # User ID cần tag warning
+WARNING_ROLE_ID = 1436409040036040886        # Role ID cần tag warning
 WARNING_CHANNEL_ID = 1446655389860106361     # Channel gửi warning
 PENDINGKICK_ROLE_ID = 1436802180429385768    # Role ID PendingKick
 PENDINGKICK_CHANNEL_ID = 1446655276962021497 # Channel gửi PendingKick

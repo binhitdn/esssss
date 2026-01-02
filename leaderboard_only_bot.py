@@ -39,7 +39,7 @@ WAKEUP_CHANNEL = 1456243735938600970     # Channel đánh thức học tập
 STUDY_ROOMS_CATEGORY = 1436215086694924449  # Danh mục phòng học đếm ngược
 
 # Warning system
-WARNING_USER_ID = 1436409040036040886        # User ID cần tag warning
+WARNING_ROLE_ID = 1436409040036040886        # Role ID cần tag warning (thay đổi từ user ID)
 WARNING_CHANNEL_ID = 1446655389860106361     # Channel gửi warning
 
 # PendingKick system
@@ -284,25 +284,42 @@ class LeaderboardBot(commands.Bot):
                 print(f"❌ Không tìm thấy channel warning {WARNING_CHANNEL_ID}")
                 return
             
+            # Lấy guild để tìm role
+            guild = channel.guild
+            role = guild.get_role(WARNING_ROLE_ID)
+            if not role:
+                print(f"❌ Không tìm thấy role Warning {WARNING_ROLE_ID}")
+                return
+            
+            # Lấy danh sách members có role Warning
+            warning_members = [member for member in guild.members if role in member.roles]
+            
+            if not warning_members:
+                print("📭 [WARNING] Không có thành viên nào có role Warning")
+                return
+            
+            # Tạo danh sách mentions
+            member_mentions = " ".join([member.mention for member in warning_members])
+            
             # Tính ngày mai
             vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
             tomorrow = datetime.now(vn_tz) + timedelta(days=1)
             tomorrow_str = tomorrow.strftime('%d/%m/%Y')
             
-            # Tạo nội dung warning
+            # Tạo nội dung warning nhẹ nhàng hơn
             warning_content = f"""
-⚠️ **CẢNH BÁO HỌC TẬP** ⚠️
+⚠️ **NHẮC NHỞ HỌC TẬP** ⚠️
 
-<@{WARNING_USER_ID}>
+{member_mentions}
 
-Các bạn đã bị gắn **Warning** vì vậy hãy học đủ thời gian mục tiêu trước **3h sáng ngày {tomorrow_str}** trước khi bị chuyển sang **pendingKick**.
+Cậu đã được gắn **Warning** vì vậy hãy học đủ thời gian mục tiêu trước **3h sáng ngày {tomorrow_str}** trước khi bị chuyển sang **PendingKick**.
 
 📊 **Để biết thời gian mục tiêu của mình là bao nhiêu:**
 🔗 Truy cập: https://14study.io.vn
 
-⚠️ **Lưu ý:** Nếu bạn không cài đặt thì mặc định là **1 giờ**.
+⚠️ **Lưu ý:** Nếu cậu không cài đặt thì mặc định là **1 giờ**.
 
-🎯 **Hãy nỗ lực học tập để tránh bị kick khỏi server!**
+🎯 **Hãy cố gắng học tập để tiếp tục ở lại với mọi người nhé!**
 
 ---
 *Tin nhắn này sẽ tự động xóa vào 2h51 sáng ngày mai.*
@@ -318,14 +335,15 @@ Các bạn đã bị gắn **Warning** vì vậy hãy học đủ thời gian m�
             self.warning_messages[message.id] = {
                 'delete_time': delete_time,
                 'channel_id': channel.id,
-                'sent_time': datetime.now(vn_tz)
+                'sent_time': datetime.now(vn_tz),
+                'member_count': len(warning_members)
             }
             
-            print(f"✅ [WARNING] Đã gửi cảnh báo (Message ID: {message.id})")
+            print(f"✅ [WARNING] Đã gửi nhắc nhở cho {len(warning_members)} thành viên (Message ID: {message.id})")
             print(f"🗑️ [WARNING] Sẽ xóa lúc: {delete_time.strftime('%H:%M %d/%m/%Y')}")
             
         except Exception as e:
-            print(f"❌ [WARNING] Lỗi gửi cảnh báo: {e}")
+            print(f"❌ [WARNING] Lỗi gửi nhắc nhở: {e}")
             import traceback
             traceback.print_exc()
     
@@ -451,7 +469,7 @@ Các bạn đã bị gắn **Warning** vì vậy hãy học đủ thời gian m�
 
 Bạn đã được chuyển sang **PendingKick** do không học đủ mục tiêu **2 ngày liên tiếp**.
 
-🔄 **Vui lòng nhấp vào nút "Xin quay lại" ở trên** nếu cậu muốn tiếp tục học với tụi mình hoặc tự rời khỏi nhóm.
+🔄 **Vui lòng nhấp vào nút "Xin quay lại" ở trên** nếu cậu muốn tiếp tục học với tụi mình hoặc tự rời khỏi nhóm nếu cậu không có nhu cầu ạ.
 
 💭 **(Sẽ không có thông báo nào cho ai kể cả admin nên cậu cứ thoải mái ạ)**
 
@@ -531,109 +549,6 @@ Bạn đã được chuyển sang **PendingKick** do không học đủ mục ti
     # ==================== SCHEDULED TASKS ====================
     
     async def auto_post_daily_loop(self):
-        """Tự động gửi bảng xếp hạng ngày lúc 2h58 sáng"""
-        try:
-            await self.wait_until_ready()
-            print("✅ Task ngày đã sẵn sàng")
-            
-            while not self.is_closed():
-                try:
-                    now = datetime.now(VN_TZ)
-                    
-                    # Kiểm tra xem có phải 2h58 không
-                    if now.hour == 2 and now.minute == 58:
-                        print("⏰ [AUTO] Đang gửi bảng xếp hạng ngày...")
-                        channel = self.get_channel(CHANNEL_DAILY)
-                        if channel:
-                            await self.send_leaderboard_to_channel(channel, "day", "hôm qua")
-                            print("✅ [AUTO] Đã gửi bảng xếp hạng ngày")
-                        else:
-                            print(f"❌ Không tìm thấy channel {CHANNEL_DAILY}")
-                        
-                        # Đợi 2 phút để tránh gửi lại
-                        await asyncio.sleep(120)
-                    else:
-                        # Kiểm tra lại sau 30 giây
-                        await asyncio.sleep(30)
-                        
-                except Exception as e:
-                    print(f"❌ [AUTO] Lỗi task ngày: {e}")
-                    await asyncio.sleep(60)
-                    
-        except Exception as e:
-            print(f"❌ [FATAL] Task ngày crashed: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    async def auto_post_weekly_loop(self):
-        """Tự động gửi bảng xếp hạng tuần lúc 20h và 2h55"""
-        try:
-            await self.wait_until_ready()
-            print("✅ Task tuần đã sẵn sàng")
-            
-            while not self.is_closed():
-                try:
-                    now = datetime.now(VN_TZ)
-                    
-                    # Kiểm tra xem có phải 20h00 hoặc 2h55 không
-                    if (now.hour == 20 and now.minute == 0) or (now.hour == 2 and now.minute == 55):
-                        print(f"⏰ [AUTO] Đang gửi bảng xếp hạng tuần ({now.hour}h{now.minute:02d})...")
-                        channel = self.get_channel(CHANNEL_WEEKLY)
-                        if channel:
-                            await self.send_leaderboard_to_channel(channel, "week", "tuần này")
-                            print("✅ [AUTO] Đã gửi bảng xếp hạng tuần")
-                        else:
-                            print(f"❌ Không tìm thấy channel {CHANNEL_WEEKLY}")
-                        
-                        # Đợi 2 phút để tránh gửi lại
-                        await asyncio.sleep(120)
-                    else:
-                        # Kiểm tra lại sau 30 giây
-                        await asyncio.sleep(30)
-                        
-                except Exception as e:
-                    print(f"❌ [AUTO] Lỗi task tuần: {e}")
-                    await asyncio.sleep(60)
-                    
-        except Exception as e:
-            print(f"❌ [FATAL] Task tuần crashed: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    async def auto_post_monthly_loop(self):
-        """Tự động gửi bảng xếp hạng tháng vào ngày 1 và 15 lúc 2h50"""
-        try:
-            await self.wait_until_ready()
-            print("✅ Task tháng đã sẵn sàng")
-            
-            while not self.is_closed():
-                try:
-                    now = datetime.now(VN_TZ)
-                    
-                    # Kiểm tra xem có phải ngày 1 hoặc 15 lúc 2h50 không
-                    if (now.day == 1 or now.day == 15) and now.hour == 2 and now.minute == 50:
-                        print(f"⏰ [AUTO] Đang gửi bảng xếp hạng tháng (ngày {now.day})...")
-                        channel = self.get_channel(CHANNEL_MONTHLY)
-                        if channel:
-                            await self.send_leaderboard_to_channel(channel, "month", "tháng này")
-                            print("✅ [AUTO] Đã gửi bảng xếp hạng tháng")
-                        else:
-                            print(f"❌ Không tìm thấy channel {CHANNEL_MONTHLY}")
-                        
-                        # Đợi 2 phút để tránh gửi lại
-                        await asyncio.sleep(120)
-                    else:
-                        # Kiểm tra lại sau 30 giây
-                        await asyncio.sleep(30)
-                        
-                except Exception as e:
-                    print(f"❌ [AUTO] Lỗi task tháng: {e}")
-                    await asyncio.sleep(60)
-                    
-        except Exception as e:
-            print(f"❌ [FATAL] Task tháng crashed: {e}")
-            import traceback
-            traceback.print_exc()
         """Tự động gửi bảng xếp hạng ngày lúc 2h58 sáng"""
         try:
             await self.wait_until_ready()
@@ -916,43 +831,6 @@ def get_period_info(period_type):
     if period_type == "day":
         # Hôm nay
         start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        return f"hôm nay ({start_date.strftime('%d/%m/%Y')})"
-    
-    elif period_type == "week":
-        # Tuần này (từ thứ 2 đến chủ nhật)
-        days_since_monday = now.weekday()  # 0 = Monday, 6 = Sunday
-        start_of_week = now - timedelta(days=days_since_monday)
-        start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
-        
-        return f"tuần này ({start_of_week.strftime('%d/%m')} - {end_of_week.strftime('%d/%m/%Y')})"
-    
-    elif period_type == "month":
-        # Tháng này
-        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        # Tháng sau, ngày 1, rồi trừ 1 ngày để có ngày cuối tháng này
-        if now.month == 12:
-            next_month = start_of_month.replace(year=now.year + 1, month=1)
-        else:
-            next_month = start_of_month.replace(month=now.month + 1)
-        end_of_month = next_month - timedelta(days=1)
-        end_of_month = end_of_month.replace(hour=23, minute=59, second=59)
-        
-        return f"tháng {now.month}/{now.year} ({start_of_month.strftime('%d/%m')} - {end_of_month.strftime('%d/%m/%Y')})"
-    
-    else:
-        return period_type
-
-def get_period_info(period_type):
-    """Lấy thông tin khoảng thời gian theo múi giờ Việt Nam"""
-    # Múi giờ Việt Nam (UTC+7)
-    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
-    now = datetime.now(vn_tz)
-    
-    if period_type == "day":
-        # Hôm nay
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = now.replace(hour=23, minute=59, second=59, microsecond=999999)
         return f"hôm nay ({start_date.strftime('%d/%m/%Y')})"
     
     elif period_type == "week":
@@ -1542,27 +1420,77 @@ async def warning_status_command(interaction: discord.Interaction):
     if now.hour >= 3:
         next_delete += timedelta(days=1)
     
+    # Đếm số thành viên có role Warning
+    guild = interaction.guild
+    role = guild.get_role(WARNING_ROLE_ID)
+    warning_count = len([member for member in guild.members if role in member.roles]) if role else 0
+    
     status_content = f"""
-📊 **TRẠNG THÁI HỆ THỐNG CẢNH BÁO**
+� **TRẠNGt THÁI HỆ THỐNG NHẮC NHỞ**
 
 ⏰ **Thời gian hiện tại**: {now.strftime('%H:%M:%S %d/%m/%Y')}
 
-🔔 **Gửi cảnh báo tiếp theo**: {next_warning.strftime('%H:%M %d/%m/%Y')}
+� **Ghửi nhắc nhở tiếp theo**: {next_warning.strftime('%H:%M %d/%m/%Y')}
 🗑️ **Xóa tin nhắn tiếp theo**: {next_delete.strftime('%H:%M %d/%m/%Y')}
 
-📋 **Cấu hình:**
-👤 **User ID**: {WARNING_USER_ID}
+� **Cấu hình:**
+🎭 **Role ID**: {WARNING_ROLE_ID}
 📺 **Channel ID**: {WARNING_CHANNEL_ID}
 
+👥 **Thành viên Warning hiện tại**: {warning_count}
 📊 **Tin nhắn đang theo dõi**: {len(bot.warning_messages)}
 
 💡 **Lệnh admin:**
-• `/test-warning` - Test gửi cảnh báo
+• `/test-warning` - Test gửi nhắc nhở
 • `/xoa-warning` - Xóa tất cả tin nhắn
 • `/warning-status` - Xem trạng thái này
 """
     
     await interaction.response.send_message(status_content, ephemeral=True)
+
+@bot.tree.command(name="list-warning", description="👥 [ADMIN] Xem danh sách thành viên Warning")
+async def list_warning_command(interaction: discord.Interaction):
+    """Xem danh sách thành viên có role Warning"""
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Chỉ admin mới có thể dùng lệnh này!", ephemeral=True)
+        return
+    
+    guild = interaction.guild
+    role = guild.get_role(WARNING_ROLE_ID)
+    
+    if not role:
+        await interaction.response.send_message(f"❌ Không tìm thấy role Warning (ID: {WARNING_ROLE_ID})!", ephemeral=True)
+        return
+    
+    warning_members = [member for member in guild.members if role in member.roles]
+    
+    if not warning_members:
+        await interaction.response.send_message("📭 Hiện tại không có thành viên nào có role Warning!", ephemeral=True)
+        return
+    
+    # Tạo danh sách thành viên
+    member_list = ""
+    for i, member in enumerate(warning_members, 1):
+        member_list += f"{i}. **{member.display_name}** ({member.mention})\n"
+        
+        # Giới hạn 20 thành viên để tránh tin nhắn quá dài
+        if i >= 20:
+            member_list += f"... và {len(warning_members) - 20} thành viên khác\n"
+            break
+    
+    list_content = f"""
+👥 **DANH SÁCH THÀNH VIÊN WARNING**
+
+🎭 **Role**: {role.name} ({role.id})
+👤 **Tổng số**: {len(warning_members)} thành viên
+
+📋 **Danh sách:**
+{member_list}
+
+💡 **Lưu ý**: Những thành viên này sẽ nhận nhắc nhở lúc 6h sáng hàng ngày.
+"""
+    
+    await interaction.response.send_message(list_content, ephemeral=True)
 
 # ==================== PENDINGKICK SYSTEM COMMANDS ====================
 

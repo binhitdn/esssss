@@ -49,6 +49,9 @@ def main():
         print("  - /xoa-phong-hoc")
         print("  - /danh-sach-phong-hoc")
         
+        print("\n⚠️ Warning System:")
+        print("  - /list-warning")
+        
         print("\n🔧 Debug & Test:")
         print("  - /debug-tasks")
         print("  - /test-leaderboard")
