@@ -15,6 +15,8 @@ from datetime import datetime, timedelta, time
 import pytz
 from io import BytesIO
 
+import random
+
 # Force UTF-8 encoding for stdout/stderr
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -54,6 +56,8 @@ class LeaderboardBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         intents.guilds = True
+        intents.members = True
+        intents.presences = True
         
         super().__init__(
             command_prefix='/',
@@ -1701,7 +1705,6 @@ async def generate_wakeup_content(caller: discord.Member, target_type: str, targ
     motivational_emojis = ["💪", "🔥", "⭐", "🏆", "🎯", "📈", "💎", "🚀", "⚡", "🌟"]
     
     # Random emoji cho mỗi lần đánh thức
-    import random
     wake_emoji = random.choice(wakeup_emojis)
     moti_emoji = random.choice(motivational_emojis)
     
