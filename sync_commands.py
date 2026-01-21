@@ -35,25 +35,6 @@ def main():
         print("  - /bangxephang")
         print("  - /bangxephang-tuan") 
         print("  - /bangxephang-thang")
-        
-        print("\n🔔 Đánh thức học tập:")
-        print("  - /danh-thuc")
-        print("  - /danh-thuc-user")
-        print("  - /danh-thuc-kenh")
-        print("  - /danh-thuc-hen-gio")
-        print("  - /danh-thuc-pomodoro")
-        print("  - /danh-thuc-stats")
-        
-        print("\n📚 Phòng học đếm ngược:")
-        print("  - /tao-phong-hoc")
-        print("  - /xoa-phong-hoc")
-        print("  - /danh-sach-phong-hoc")
-        
-        print("\n⚠️ Warning System:")
-        print("  - /list-warning")
-        
-        print("\n🔧 Debug & Test:")
-        print("  - /debug-tasks")
         print("  - /test-leaderboard")
         
         print("\n🚀 Bước tiếp theo:")
